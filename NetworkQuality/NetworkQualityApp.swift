@@ -5,7 +5,7 @@ struct NetworkQualityApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .frame(minWidth: 800, minHeight: 600)
+                .frame(minWidth: 800, minHeight: 450)
         }
         .windowStyle(.automatic)
         .windowResizability(.contentMinSize)

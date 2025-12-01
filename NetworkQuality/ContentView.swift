@@ -4,6 +4,7 @@ struct ContentView: View {
     @StateObject private var viewModel = NetworkQualityViewModel()
     @State private var selectedTab = 0
     @State private var showSettings = false
+    @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
 
     var body: some View {
         NavigationSplitView {
@@ -14,18 +15,13 @@ struct ContentView: View {
                         .tag(0)
                     Label("Results", systemImage: "list.bullet.clipboard")
                         .tag(1)
-                }
-
-                Section("Analytics") {
-                    Label("Speed Graph", systemImage: "chart.xyaxis.line")
-                        .tag(2)
                     Label("History", systemImage: "clock")
-                        .tag(3)
+                        .tag(2)
                 }
 
                 Section("Options") {
                     Label("Settings", systemImage: "gear")
-                        .tag(4)
+                        .tag(3)
                 }
             }
             .listStyle(.sidebar)
@@ -42,17 +38,8 @@ struct ContentView: View {
                         verboseOutput: viewModel.verboseOutput
                     )
                 case 2:
-                    SpeedGraphView(
-                        speedHistory: viewModel.speedHistory,
-                        averageDownload: viewModel.averageDownloadSpeed,
-                        averageUpload: viewModel.averageUploadSpeed,
-                        maxDownload: viewModel.maxDownloadSpeed,
-                        maxUpload: viewModel.maxUploadSpeed
-                    )
-                    .padding()
-                case 3:
                     HistoryView(results: viewModel.results, viewModel: viewModel)
-                case 4:
+                case 3:
                     SettingsView(
                         config: $viewModel.testConfiguration,
                         availableInterfaces: viewModel.availableInterfaces
@@ -61,10 +48,20 @@ struct ContentView: View {
                     Text("Select an option")
                 }
             }
-            .frame(minWidth: 500, minHeight: 400)
+            .frame(minWidth: 500, minHeight: 300)
         }
         .navigationTitle("Network Quality")
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("Unit", selection: $speedUnitRaw) {
+                    ForEach(SpeedUnit.allCases, id: \.rawValue) { unit in
+                        Text(unit.label).tag(unit.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 140)
+            }
+
             ToolbarItemGroup(placement: .primaryAction) {
                 Button(action: { viewModel.clearHistory() }) {
                     Label("Clear", systemImage: "trash")
@@ -84,9 +81,16 @@ struct ContentView: View {
 
 struct SpeedTestView: View {
     @ObservedObject var viewModel: NetworkQualityViewModel
+    @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+
+    private var speedUnit: SpeedUnit {
+        SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
+    }
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
+            Spacer()
+
             // Speed gauges
             HStack(spacing: 30) {
                 SpeedGaugeView(
@@ -96,7 +100,8 @@ struct SpeedTestView: View {
                         (viewModel.currentResult?.downloadSpeedMbps ?? 0),
                     maxSpeed: max(viewModel.maxDownloadSpeed, 1000),
                     color: .blue,
-                    icon: "arrow.down.circle.fill"
+                    icon: "arrow.down.circle.fill",
+                    speedUnit: speedUnit
                 )
 
                 SpeedGaugeView(
@@ -106,14 +111,67 @@ struct SpeedTestView: View {
                         (viewModel.currentResult?.uploadSpeedMbps ?? 0),
                     maxSpeed: max(viewModel.maxUploadSpeed, 1000),
                     color: .green,
-                    icon: "arrow.up.circle.fill"
+                    icon: "arrow.up.circle.fill",
+                    speedUnit: speedUnit
                 )
             }
             .padding(.horizontal)
 
-            // Compact stats row (only show after test completes)
-            if let result = viewModel.currentResult, !viewModel.isRunning {
-                HStack(spacing: 24) {
+            // Start/Stop button with progress
+            Button(action: {
+                if viewModel.isRunning {
+                    viewModel.cancelTest()
+                } else {
+                    Task {
+                        await viewModel.runTest()
+                    }
+                }
+            }) {
+                ZStack {
+                    // Background circle
+                    Circle()
+                        .fill(viewModel.isRunning ? Color.red.opacity(0.1) : Color.accentColor.opacity(0.1))
+                        .frame(width: 80, height: 80)
+
+                    if viewModel.isRunning {
+                        // Indeterminate progress ring (continuous rotation)
+                        Circle()
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 4)
+                            .frame(width: 74, height: 74)
+
+                        Circle()
+                            .trim(from: 0, to: 0.3)
+                            .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                            .frame(width: 74, height: 74)
+                            .rotationEffect(.degrees(viewModel.service.elapsedTime * 90))
+                            .animation(.linear(duration: 0.1), value: viewModel.service.elapsedTime)
+
+                        // Elapsed time
+                        Text(String(format: "%.0fs", viewModel.service.elapsedTime))
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    } else {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            // Test mode picker
+            Picker("", selection: $viewModel.testConfiguration.mode) {
+                Text("Parallel").tag(TestMode.parallel)
+                Text("Sequential").tag(TestMode.sequential)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 180)
+            .disabled(viewModel.isRunning)
+
+            Spacer()
+
+            // Stats row (always reserve space, show when test completes)
+            HStack(spacing: 24) {
+                if let result = viewModel.currentResult, !viewModel.isRunning {
                     StatPill(
                         icon: "clock",
                         label: "Latency",
@@ -126,44 +184,11 @@ struct SpeedTestView: View {
                         value: result.responsivenessValue.map { "\($0)" } ?? "N/A",
                         color: .purple
                     )
-                    if let iface = result.interfaceName {
-                        StatPill(icon: "network", label: "Interface", value: iface, color: .gray)
-                    }
-                }
-                .padding(.horizontal)
-            }
-
-            // Start/Stop button
-            Button(action: {
-                if viewModel.isRunning {
-                    viewModel.cancelTest()
-                } else {
-                    Task {
-                        await viewModel.runTest()
-                    }
-                }
-            }) {
-                ZStack {
-                    Circle()
-                        .fill(viewModel.isRunning ? Color.red.opacity(0.1) : Color.accentColor.opacity(0.1))
-                        .frame(width: 80, height: 80)
-
-                    if viewModel.isRunning {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                    } else {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 30))
-                            .foregroundStyle(Color.accentColor)
-                    }
                 }
             }
-            .buttonStyle(.plain)
-            .padding(.top, 8)
-
-            Spacer()
+            .frame(height: 36)
+            .padding(.bottom, 12)
         }
-        .padding(.top)
     }
 }
 
@@ -178,6 +203,9 @@ struct StatPill: View {
             Image(systemName: icon)
                 .foregroundStyle(color)
                 .font(.caption)
+            Text(label)
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.secondary)
             Text(value)
                 .font(.system(.callout, design: .rounded, weight: .medium))
         }
@@ -226,6 +254,11 @@ struct HistoryView: View {
 
 struct HistoryRow: View {
     let result: NetworkQualityResult
+    @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+
+    private var speedUnit: SpeedUnit {
+        SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
+    }
 
     var body: some View {
         HStack {
@@ -239,12 +272,12 @@ struct HistoryRow: View {
 
             Spacer()
 
-            HStack(spacing: 20) {
+            HStack(spacing: 16) {
                 VStack(alignment: .trailing) {
                     Text("Download")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(result.formattedDownloadSpeed)
+                    Text(speedUnit.formatBps(result.dlThroughput))
                         .foregroundStyle(.blue)
                 }
 
@@ -252,17 +285,27 @@ struct HistoryRow: View {
                     Text("Upload")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(result.formattedUploadSpeed)
+                    Text(speedUnit.formatBps(result.ulThroughput))
                         .foregroundStyle(.green)
                 }
 
-                if let rpm = result.responsiveness {
+                if let latency = result.baseRtt {
+                    VStack(alignment: .trailing) {
+                        Text("Latency")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(String(format: "%.0f ms", latency))
+                            .foregroundStyle(.orange)
+                    }
+                }
+
+                if let rpm = result.responsivenessValue {
                     VStack(alignment: .trailing) {
                         Text("RPM")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text("\(rpm)")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.purple)
                     }
                 }
             }

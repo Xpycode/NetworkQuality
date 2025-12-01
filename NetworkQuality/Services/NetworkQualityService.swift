@@ -28,9 +28,18 @@ class NetworkQualityService: ObservableObject {
     @Published var currentDownloadSpeed: Double = 0
     @Published var currentUploadSpeed: Double = 0
     @Published var verboseOutput: [String] = []
+    @Published var elapsedTime: TimeInterval = 0
+    @Published var progressLineCount: Int = 0
+    private let expectedLineCount: Int = 100  // networkQuality outputs ~100 progress lines
+
+    var progressPercentage: Double {
+        return min(Double(progressLineCount) / Double(expectedLineCount), 0.99)
+    }
 
     private var process: Process?
     private var wasCancelled = false
+    private var progressTimer: Timer?
+    private var testStartTime: Date?
 
     func getAvailableInterfaces() -> [String] {
         let process = Process()
@@ -68,10 +77,23 @@ class NetworkQualityService: ObservableObject {
         verboseOutput = []
         currentDownloadSpeed = 0
         currentUploadSpeed = 0
+        elapsedTime = 0
+        progressLineCount = 0
+
+        // Start progress timer
+        testStartTime = Date()
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self = self, let startTime = self.testStartTime else { return }
+                self.elapsedTime = Date().timeIntervalSince(startTime)
+            }
+        }
 
         defer {
             isRunning = false
             process = nil
+            progressTimer?.invalidate()
+            progressTimer = nil
         }
 
         let process = Process()
@@ -318,6 +340,11 @@ class NetworkQualityService: ObservableObject {
             // Update progress text if we have any speeds
             if currentDownloadSpeed > 0 || currentUploadSpeed > 0 {
                 progress = String(format: "↓ %.1f Mbps  ↑ %.1f Mbps", currentDownloadSpeed, currentUploadSpeed)
+            }
+
+            // Count progress lines (lines containing speed data)
+            if trimmed.contains("Downlink:") || trimmed.contains("Uplink:") {
+                progressLineCount += 1
             }
 
             // Add to verbose output if enabled

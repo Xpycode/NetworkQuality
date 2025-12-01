@@ -276,6 +276,46 @@ enum ProtocolSelection: String, CaseIterable {
     case h3 = "HTTP/3 (QUIC)"
 }
 
+enum SpeedUnit: String, CaseIterable {
+    case mbps = "Mbit/s"
+    case mbytes = "MB/s"
+
+    var label: String {
+        rawValue
+    }
+
+    /// Format speed from Mbps (megabits per second) to the selected unit
+    func format(_ mbps: Double) -> (value: String, unit: String) {
+        switch self {
+        case .mbps:
+            if mbps >= 1000 {
+                return (String(format: "%.2f", mbps / 1000), "Gbit/s")
+            } else if mbps >= 1 {
+                return (String(format: "%.1f", mbps), "Mbit/s")
+            } else {
+                return (String(format: "%.0f", mbps * 1000), "Kbit/s")
+            }
+        case .mbytes:
+            let mbytes = mbps / 8.0  // 8 bits = 1 byte
+            if mbytes >= 1000 {
+                return (String(format: "%.2f", mbytes / 1000), "GB/s")
+            } else if mbytes >= 1 {
+                return (String(format: "%.1f", mbytes), "MB/s")
+            } else {
+                return (String(format: "%.0f", mbytes * 1000), "KB/s")
+            }
+        }
+    }
+
+    /// Format speed from bps (bits per second) to a display string
+    func formatBps(_ bps: Int64?) -> String {
+        guard let bps = bps else { return "N/A" }
+        let mbps = Double(bps) / 1_000_000.0
+        let formatted = format(mbps)
+        return "\(formatted.value) \(formatted.unit)"
+    }
+}
+
 struct TestConfiguration {
     var mode: TestMode = .parallel
     var protocolSelection: ProtocolSelection = .auto

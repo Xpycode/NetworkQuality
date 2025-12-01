@@ -13,7 +13,6 @@
 		A11111110000000000000004 /* NetworkQualityResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* NetworkQualityResult.swift */; };
 		A11111110000000000000005 /* NetworkQualityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005 /* NetworkQualityService.swift */; };
 		A11111110000000000000006 /* NetworkQualityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* NetworkQualityViewModel.swift */; };
-		A11111110000000000000007 /* SpeedGraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000007 /* SpeedGraphView.swift */; };
 		A11111110000000000000008 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* SettingsView.swift */; };
 		A11111110000000000000009 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* ResultsView.swift */; };
 		A11111110000000000000010 /* GaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010 /* GaugeView.swift */; };
@@ -27,7 +26,6 @@
 		A10000000000000000000004 /* NetworkQualityResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkQualityResult.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* NetworkQualityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkQualityService.swift; sourceTree = "<group>"; };
 		A10000000000000000000006 /* NetworkQualityViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkQualityViewModel.swift; sourceTree = "<group>"; };
-		A10000000000000000000007 /* SpeedGraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedGraphView.swift; sourceTree = "<group>"; };
 		A10000000000000000000008 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A10000000000000000000009 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
 		A10000000000000000000010 /* GaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaugeView.swift; sourceTree = "<group>"; };
@@ -103,7 +101,6 @@
 		A13000000000000000000007 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				A10000000000000000000007 /* SpeedGraphView.swift */,
 				A10000000000000000000008 /* SettingsView.swift */,
 				A10000000000000000000009 /* ResultsView.swift */,
 				A10000000000000000000010 /* GaugeView.swift */,
@@ -139,7 +136,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2610;
 				TargetAttributes = {
 					A14000000000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
@@ -185,7 +182,6 @@
 				A11111110000000000000004 /* NetworkQualityResult.swift in Sources */,
 				A11111110000000000000005 /* NetworkQualityService.swift in Sources */,
 				A11111110000000000000006 /* NetworkQualityViewModel.swift in Sources */,
-				A11111110000000000000007 /* SpeedGraphView.swift in Sources */,
 				A11111110000000000000008 /* SettingsView.swift in Sources */,
 				A11111110000000000000009 /* ResultsView.swift in Sources */,
 				A11111110000000000000010 /* GaugeView.swift in Sources */,
@@ -229,6 +225,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -252,6 +249,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -291,6 +289,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -307,6 +306,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -320,7 +320,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -347,7 +349,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

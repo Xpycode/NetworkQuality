@@ -3,6 +3,11 @@ import SwiftUI
 struct ResultsView: View {
     let result: NetworkQualityResult?
     let verboseOutput: [String]
+    @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+
+    private var speedUnit: SpeedUnit {
+        SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
+    }
 
     var body: some View {
         ScrollView {
@@ -12,14 +17,14 @@ struct ResultsView: View {
                     HStack(spacing: 30) {
                         MetricCard(
                             title: "Download",
-                            value: result.formattedDownloadSpeed,
+                            value: speedUnit.formatBps(result.dlThroughput),
                             icon: "arrow.down.circle.fill",
                             color: .blue
                         )
 
                         MetricCard(
                             title: "Upload",
-                            value: result.formattedUploadSpeed,
+                            value: speedUnit.formatBps(result.ulThroughput),
                             icon: "arrow.up.circle.fill",
                             color: .green
                         )
