@@ -30,6 +30,7 @@ class NetworkQualityService: ObservableObject {
     @Published var verboseOutput: [String] = []
 
     private var process: Process?
+    private var wasCancelled = false
 
     func getAvailableInterfaces() -> [String] {
         let process = Process()
@@ -62,6 +63,7 @@ class NetworkQualityService: ObservableObject {
         }
 
         isRunning = true
+        wasCancelled = false
         progress = "Starting test..."
         verboseOutput = []
         currentDownloadSpeed = 0
@@ -206,6 +208,9 @@ class NetworkQualityService: ObservableObject {
         let errorData = dataAccumulator.errorData
 
         if process.terminationStatus != 0 {
+            if wasCancelled {
+                throw NetworkQualityError.cancelled
+            }
             let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
             throw NetworkQualityError.executionFailed(errorString)
         }
@@ -276,6 +281,7 @@ class NetworkQualityService: ObservableObject {
     }
 
     func cancelTest() {
+        wasCancelled = true
         process?.terminate()
         isRunning = false
         progress = "Cancelled"

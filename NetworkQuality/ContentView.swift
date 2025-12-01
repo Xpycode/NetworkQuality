@@ -42,17 +42,13 @@ struct ContentView: View {
                         verboseOutput: viewModel.verboseOutput
                     )
                 case 2:
-                    VStack(spacing: 20) {
-                        SpeedGraphView(
-                            speedHistory: viewModel.speedHistory,
-                            averageDownload: viewModel.averageDownloadSpeed,
-                            averageUpload: viewModel.averageUploadSpeed,
-                            maxDownload: viewModel.maxDownloadSpeed,
-                            maxUpload: viewModel.maxUploadSpeed
-                        )
-
-                        LatencyComparisonView(result: viewModel.currentResult)
-                    }
+                    SpeedGraphView(
+                        speedHistory: viewModel.speedHistory,
+                        averageDownload: viewModel.averageDownloadSpeed,
+                        averageUpload: viewModel.averageUploadSpeed,
+                        maxDownload: viewModel.maxDownloadSpeed,
+                        maxUpload: viewModel.maxUploadSpeed
+                    )
                     .padding()
                 case 3:
                     HistoryView(results: viewModel.results, viewModel: viewModel)
@@ -70,24 +66,8 @@ struct ContentView: View {
         .navigationTitle("Network Quality")
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                if viewModel.isRunning {
-                    Button(action: { viewModel.cancelTest() }) {
-                        Label("Cancel", systemImage: "stop.circle.fill")
-                    }
-                    .tint(.red)
-                } else {
-                    Button(action: {
-                        Task {
-                            await viewModel.runTest()
-                        }
-                    }) {
-                        Label("Run Test", systemImage: "play.circle.fill")
-                    }
-                    .tint(.green)
-                }
-
                 Button(action: { viewModel.clearHistory() }) {
-                    Label("Clear History", systemImage: "trash")
+                    Label("Clear", systemImage: "trash")
                 }
                 .disabled(viewModel.results.isEmpty)
             }
@@ -106,151 +86,105 @@ struct SpeedTestView: View {
     @ObservedObject var viewModel: NetworkQualityViewModel
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 30) {
-                // Status indicator
-                if viewModel.isRunning {
-                    VStack(spacing: 12) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        Text(viewModel.progress)
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
+        VStack(spacing: 20) {
+            // Speed gauges
+            HStack(spacing: 30) {
+                SpeedGaugeView(
+                    title: "Download",
+                    speed: viewModel.isRunning ?
+                        viewModel.currentDownloadSpeed :
+                        (viewModel.currentResult?.downloadSpeedMbps ?? 0),
+                    maxSpeed: max(viewModel.maxDownloadSpeed, 1000),
+                    color: .blue,
+                    icon: "arrow.down.circle.fill"
+                )
+
+                SpeedGaugeView(
+                    title: "Upload",
+                    speed: viewModel.isRunning ?
+                        viewModel.currentUploadSpeed :
+                        (viewModel.currentResult?.uploadSpeedMbps ?? 0),
+                    maxSpeed: max(viewModel.maxUploadSpeed, 1000),
+                    color: .green,
+                    icon: "arrow.up.circle.fill"
+                )
+            }
+            .padding(.horizontal)
+
+            // Compact stats row (only show after test completes)
+            if let result = viewModel.currentResult, !viewModel.isRunning {
+                HStack(spacing: 24) {
+                    StatPill(
+                        icon: "clock",
+                        label: "Latency",
+                        value: result.baseRtt.map { String(format: "%.0f ms", $0) } ?? "N/A",
+                        color: .orange
+                    )
+                    StatPill(
+                        icon: "gauge.with.dots.needle.67percent",
+                        label: "RPM",
+                        value: result.responsivenessValue.map { "\($0)" } ?? "N/A",
+                        color: .purple
+                    )
+                    if let iface = result.interfaceName {
+                        StatPill(icon: "network", label: "Interface", value: iface, color: .gray)
                     }
-                    .padding(.vertical, 20)
-                }
-
-                // Speed gauges
-                HStack(spacing: 40) {
-                    SpeedGaugeView(
-                        title: "Download",
-                        speed: viewModel.isRunning ?
-                            viewModel.currentDownloadSpeed :
-                            (viewModel.currentResult?.downloadSpeedMbps ?? 0),
-                        maxSpeed: max(viewModel.maxDownloadSpeed, 1000),
-                        color: .blue,
-                        icon: "arrow.down.circle.fill"
-                    )
-
-                    SpeedGaugeView(
-                        title: "Upload",
-                        speed: viewModel.isRunning ?
-                            viewModel.currentUploadSpeed :
-                            (viewModel.currentResult?.uploadSpeedMbps ?? 0),
-                        maxSpeed: max(viewModel.maxUploadSpeed, 1000),
-                        color: .green,
-                        icon: "arrow.up.circle.fill"
-                    )
-                }
-                .padding()
-
-                // Responsiveness and Latency
-                HStack(spacing: 20) {
-                    ResponsivenessGaugeView(
-                        rpm: viewModel.currentResult?.responsivenessValue
-                    )
-                    .frame(maxWidth: .infinity)
-
-                    LatencyGaugeView(latency: viewModel.currentResult?.baseRtt)
-                        .frame(maxWidth: 200)
                 }
                 .padding(.horizontal)
+            }
 
-                // Quick stats
-                if let result = viewModel.currentResult {
-                    QuickStatsView(result: result)
+            // Start/Stop button
+            Button(action: {
+                if viewModel.isRunning {
+                    viewModel.cancelTest()
+                } else {
+                    Task {
+                        await viewModel.runTest()
+                    }
                 }
+            }) {
+                ZStack {
+                    Circle()
+                        .fill(viewModel.isRunning ? Color.red.opacity(0.1) : Color.accentColor.opacity(0.1))
+                        .frame(width: 80, height: 80)
 
-                // Test info
-                TestInfoView(config: viewModel.testConfiguration)
-
-                Spacer()
+                    if viewModel.isRunning {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                    } else {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                }
             }
-            .padding()
+            .buttonStyle(.plain)
+            .padding(.top, 8)
+
+            Spacer()
         }
+        .padding(.top)
     }
 }
 
-struct QuickStatsView: View {
-    let result: NetworkQualityResult
-
-    var body: some View {
-        GroupBox("Test Results") {
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 16) {
-                QuickStatItem(
-                    title: "Download",
-                    value: result.formattedDownloadSpeed,
-                    icon: "arrow.down",
-                    color: .blue
-                )
-                QuickStatItem(
-                    title: "Upload",
-                    value: result.formattedUploadSpeed,
-                    icon: "arrow.up",
-                    color: .green
-                )
-                QuickStatItem(
-                    title: "Latency",
-                    value: result.baseRtt.map { String(format: "%.1f ms", $0) } ?? "N/A",
-                    icon: "clock",
-                    color: .orange
-                )
-                QuickStatItem(
-                    title: "Interface",
-                    value: result.interfaceName ?? "N/A",
-                    icon: "network",
-                    color: .purple
-                )
-            }
-        }
-    }
-}
-
-struct QuickStatItem: View {
-    let title: String
-    let value: String
+struct StatPill: View {
     let icon: String
+    let label: String
+    let value: String
     let color: Color
 
     var body: some View {
-        HStack {
+        HStack(spacing: 6) {
             Image(systemName: icon)
                 .foregroundStyle(color)
-                .frame(width: 24)
-            VStack(alignment: .leading) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .font(.system(.body, design: .rounded, weight: .medium))
-            }
+                .font(.caption)
+            Text(value)
+                .font(.system(.callout, design: .rounded, weight: .medium))
         }
-    }
-}
-
-struct TestInfoView: View {
-    let config: TestConfiguration
-
-    var body: some View {
-        GroupBox("Test Configuration") {
-            HStack(spacing: 20) {
-                Label(config.mode.rawValue, systemImage: "arrow.left.arrow.right")
-                Label(config.protocolSelection.rawValue, systemImage: "network")
-                if !config.networkInterface.isEmpty {
-                    Label(config.networkInterface, systemImage: "antenna.radiowaves.left.and.right")
-                }
-                if config.usePrivateRelay {
-                    Label("Private Relay", systemImage: "lock.shield")
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.1))
+        .clipShape(Capsule())
     }
 }
 

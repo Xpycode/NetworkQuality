@@ -72,6 +72,8 @@ class NetworkQualityViewModel: ObservableObject {
             if speedHistory.count > 50 {
                 speedHistory.removeFirst(speedHistory.count - 50)
             }
+        } catch NetworkQualityError.cancelled {
+            // User cancelled - don't show error
         } catch {
             errorMessage = error.localizedDescription
             showError = true
