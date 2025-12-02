@@ -91,7 +91,7 @@ class NetworkQualityViewModel: ObservableObject {
         currentResult = nil
     }
 
-    func exportResults() -> String {
+    func exportResultsJSON() -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
@@ -120,6 +120,65 @@ class NetworkQualityViewModel: ObservableObject {
         }
 
         return "[]"
+    }
+
+    func exportResultsCSV() -> String {
+        var csv = "Timestamp,Download (Mbps),Upload (Mbps),Responsiveness (RPM),Latency (ms),Interface,Connection Type,WiFi SSID,WiFi Band,WiFi Channel,Signal Quality,Signal (dBm),Link Speed (Mbps)\n"
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+
+        for result in results {
+            var row: [String] = []
+
+            // Timestamp
+            row.append(dateFormatter.string(from: result.timestamp))
+
+            // Speeds
+            row.append(String(format: "%.2f", result.downloadSpeedMbps))
+            row.append(String(format: "%.2f", result.uploadSpeedMbps))
+
+            // Responsiveness
+            if let rpm = result.responsivenessValue {
+                row.append("\(rpm)")
+            } else {
+                row.append("")
+            }
+
+            // Latency
+            if let rtt = result.baseRtt {
+                row.append(String(format: "%.1f", rtt))
+            } else {
+                row.append("")
+            }
+
+            // Interface
+            row.append(result.interfaceName ?? "")
+
+            // Network metadata
+            if let metadata = result.networkMetadata {
+                row.append(metadata.connectionType.rawValue)
+                row.append(escapeCSV(metadata.wifiSSID ?? ""))
+                row.append(metadata.wifiBand?.rawValue ?? "")
+                row.append(metadata.wifiChannel.map { "\($0)" } ?? "")
+                row.append(metadata.signalQuality ?? "")
+                row.append(metadata.wifiRSSI.map { "\($0)" } ?? "")
+                row.append(metadata.wifiTxRate.map { String(format: "%.0f", $0) } ?? "")
+            } else {
+                row.append(contentsOf: ["", "", "", "", "", "", ""])
+            }
+
+            csv += row.joined(separator: ",") + "\n"
+        }
+
+        return csv
+    }
+
+    private func escapeCSV(_ value: String) -> String {
+        if value.contains(",") || value.contains("\"") || value.contains("\n") {
+            return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        }
+        return value
     }
 
     var averageDownloadSpeed: Double {

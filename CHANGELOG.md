@@ -2,6 +2,24 @@
 
 ## 2025-12-02
 
+### UI-6: CSV Export
+
+#### New Features
+- **CSV Export Format**: Export history data in spreadsheet-friendly CSV format
+  - Toggle between CSV and JSON formats in export dialog
+  - Includes all data: speeds, responsiveness, latency, network metadata
+  - Proper CSV escaping for values containing commas or quotes
+- **Enhanced Export Dialog**:
+  - Format picker (CSV/JSON) in header
+  - Copy feedback animation
+  - Result count display
+  - Wider dialog for better readability
+
+#### CSV Columns
+Timestamp, Download (Mbps), Upload (Mbps), Responsiveness (RPM), Latency (ms), Interface, Connection Type, WiFi SSID, WiFi Band, WiFi Channel, Signal Quality, Signal (dBm), Link Speed (Mbps)
+
+---
+
 ### UI-5: Shareable Result Cards
 
 #### New Features

@@ -5,7 +5,6 @@ struct ResultsView: View {
     let verboseOutput: [String]
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
     @State private var selectedTab = 0
-    @State private var showShareMenu = false
     @State private var showCopiedFeedback = false
 
     private var speedUnit: SpeedUnit {
@@ -16,20 +15,13 @@ struct ResultsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let result = result {
-                    // Tab picker and share button
-                    HStack {
-                        Picker("View", selection: $selectedTab) {
-                            Text("Insights").tag(0)
-                            Text("Raw Data").tag(1)
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(width: 200)
-
-                        Spacer()
-
-                        // Share button
-                        ShareMenuButton(result: result, showCopiedFeedback: $showCopiedFeedback)
+                    // Tab picker for Insights vs Raw Data
+                    Picker("View", selection: $selectedTab) {
+                        Text("Insights").tag(0)
+                        Text("Raw Data").tag(1)
                     }
+                    .pickerStyle(.segmented)
+                    .frame(width: 200)
 
                     if selectedTab == 0 {
                         // Insights Tab - Plain language explanations
@@ -67,6 +59,13 @@ struct ResultsView: View {
                 }
             }
             .padding()
+        }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                if let result = result {
+                    ShareMenuButton(result: result, showCopiedFeedback: $showCopiedFeedback)
+                }
+            }
         }
     }
 

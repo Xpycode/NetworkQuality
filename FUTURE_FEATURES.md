@@ -32,51 +32,22 @@ Generate image cards for social media sharing with:
 - Timestamp and app branding
 - Copy to clipboard, save as PNG, or share text summary
 
----
-
-## Essential
-
-### Menu Bar Live Speed
-Persistent upload/download throughput display between tests. Makes the app a useful utility that runs continuously.
-
-### Scheduled Background Testing
-- Configure automatic tests (hourly/daily)
-- Log results for ISP performance documentation
-- Essential for proving throttling or demanding service credits
-
-### CSV Export
-Spreadsheet-friendly export format for history data. (JSON already available)
-
-### PDF Report
-Branded PDF report with:
-- Test results
-- Insights and recommendations
-- Historical trends
+### ✅ CSV Export
+Spreadsheet-friendly export format for history data:
+- Toggle between CSV and JSON in export dialog
+- All metrics: speeds, RPM, latency, network metadata
+- WiFi details: SSID, band, channel, signal quality
+- Proper escaping for special characters
 
 ---
 
-## Medium Priority
-
-### Notification Alerts
-- Alert when speed drops below configured threshold
-- Connection lost notification
-- Speed recovered after outage
+## High Priority
 
 ### Network Troubleshooting Tools
 Wrap common diagnostic tools in a friendly UI:
 - Ping (with visualization)
 - Traceroute
 - DNS lookup
-
-### VPN Comparison Mode
-Run tests with VPN on vs. off and highlight the difference. Helps users detect ISP throttling.
-
----
-
-## Longer Term
-
-### LAN Speed Testing
-Simple local network speed test between Macs without server setup. Highly requested but poorly served by existing apps.
 
 ### Multi-Server Testing
 Test against multiple infrastructures in one session:
@@ -86,8 +57,37 @@ Test against multiple infrastructures in one session:
 
 Helps identify routing issues or server-specific throttling.
 
-### Per-Application Bandwidth Attribution
-Show which apps use bandwidth during tests. Would require additional permissions (Network Extension or similar).
-
 ### Geographic Connection Visualization
 Map view showing where network traffic routes through, inspired by GlassWire.
+
+### LAN Speed Testing
+Simple local network speed test between Macs without server setup. Highly requested but poorly served by existing apps.
+
+---
+
+## Lower Priority
+
+### Menu Bar Live Speed
+Persistent upload/download throughput display between tests. Makes the app a useful utility that runs continuously.
+
+### Scheduled Background Testing
+- Configure automatic tests (hourly/daily)
+- Log results for ISP performance documentation
+- Essential for proving throttling or demanding service credits
+
+### PDF Report
+Branded PDF report with:
+- Test results
+- Insights and recommendations
+- Historical trends
+
+### Notification Alerts
+- Alert when speed drops below configured threshold
+- Connection lost notification
+- Speed recovered after outage
+
+### VPN Comparison Mode
+Run tests with VPN on vs. off and highlight the difference. Helps users detect ISP throttling.
+
+### Per-Application Bandwidth Attribution
+Show which apps use bandwidth during tests. Would require additional permissions (Network Extension or similar).

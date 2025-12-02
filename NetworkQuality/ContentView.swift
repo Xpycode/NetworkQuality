@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @StateObject private var viewModel = NetworkQualityViewModel()
@@ -273,7 +274,7 @@ struct HistoryView: View {
             }
         }
         .sheet(isPresented: $exportPresented) {
-            ExportSheet(jsonContent: viewModel.exportResults())
+            ExportSheet(viewModel: viewModel)
         }
         .sheet(item: $selectedResult) { result in
             HistoryDetailSheet(result: result)
@@ -527,35 +528,82 @@ struct HistoryRow: View {
     }
 }
 
+enum ExportFormat: String, CaseIterable {
+    case csv = "CSV"
+    case json = "JSON"
+
+    var fileExtension: String {
+        rawValue.lowercased()
+    }
+
+    var contentType: UTType {
+        switch self {
+        case .csv: return .commaSeparatedText
+        case .json: return .json
+        }
+    }
+}
+
 struct ExportSheet: View {
-    let jsonContent: String
+    @ObservedObject var viewModel: NetworkQualityViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedFormat: ExportFormat = .csv
+    @State private var copiedFeedback = false
+
+    private var exportContent: String {
+        switch selectedFormat {
+        case .csv: return viewModel.exportResultsCSV()
+        case .json: return viewModel.exportResultsJSON()
+        }
+    }
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Export Results")
-                .font(.headline)
+            HStack {
+                Text("Export Results")
+                    .font(.headline)
+
+                Spacer()
+
+                Picker("Format", selection: $selectedFormat) {
+                    ForEach(ExportFormat.allCases, id: \.self) { format in
+                        Text(format.rawValue).tag(format)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 140)
+            }
 
             ScrollView {
-                Text(jsonContent)
+                Text(exportContent)
                     .font(.system(.body, design: .monospaced))
                     .textSelection(.enabled)
                     .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(Color.secondary.opacity(0.1))
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
             HStack {
-                Button("Copy to Clipboard") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(jsonContent, forType: .string)
+                Button {
+                    copyToClipboard()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: copiedFeedback ? "checkmark" : "doc.on.doc")
+                        Text(copiedFeedback ? "Copied!" : "Copy to Clipboard")
+                    }
                 }
 
-                Button("Save to File") {
+                Button("Save to File...") {
                     saveToFile()
                 }
 
                 Spacer()
+
+                Text("\(viewModel.results.count) results")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 Button("Done") {
                     dismiss()
@@ -564,16 +612,25 @@ struct ExportSheet: View {
             }
         }
         .padding()
-        .frame(minWidth: 500, minHeight: 400)
+        .frame(minWidth: 600, minHeight: 450)
+    }
+
+    private func copyToClipboard() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(exportContent, forType: .string)
+        copiedFeedback = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            copiedFeedback = false
+        }
     }
 
     private func saveToFile() {
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [.json]
-        panel.nameFieldStringValue = "network-quality-results.json"
+        panel.allowedContentTypes = [selectedFormat.contentType]
+        panel.nameFieldStringValue = "network-quality-results.\(selectedFormat.fileExtension)"
 
         if panel.runModal() == .OK, let url = panel.url {
-            try? jsonContent.write(to: url, atomically: true, encoding: .utf8)
+            try? exportContent.write(to: url, atomically: true, encoding: .utf8)
         }
     }
 }
