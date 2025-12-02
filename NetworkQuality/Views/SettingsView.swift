@@ -3,9 +3,44 @@ import SwiftUI
 struct SettingsView: View {
     @Binding var config: TestConfiguration
     let availableInterfaces: [String]
+    @AppStorage("rpmRatingMode") private var rpmRatingModeRaw = RPMRatingMode.practical.rawValue
+
+    private var rpmRatingMode: Binding<RPMRatingMode> {
+        Binding(
+            get: { RPMRatingMode(rawValue: rpmRatingModeRaw) ?? .practical },
+            set: { rpmRatingModeRaw = $0.rawValue }
+        )
+    }
 
     var body: some View {
         Form {
+            Section("RPM Rating Mode") {
+                Picker("Thresholds", selection: rpmRatingMode) {
+                    ForEach(RPMRatingMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text(rpmRatingMode.wrappedValue.description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if rpmRatingMode.wrappedValue == .ietf {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("IETF Thresholds:")
+                            .font(.caption.weight(.medium))
+                        Text("Excellent: 6000+ RPM (≤10ms)")
+                        Text("Good: 1000+ RPM (≤60ms)")
+                        Text("Fair: 300+ RPM (≤200ms)")
+                        Text("Poor: <300 RPM (>200ms)")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+                }
+            }
+
             Section("Test Mode") {
                 Picker("Mode", selection: $config.mode) {
                     ForEach(TestMode.allCases, id: \.self) { mode in

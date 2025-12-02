@@ -4,6 +4,7 @@ struct ResultsView: View {
     let result: NetworkQualityResult?
     let verboseOutput: [String]
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+    @State private var selectedTab = 0
 
     private var speedUnit: SpeedUnit {
         SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
@@ -13,53 +14,29 @@ struct ResultsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let result = result {
-                    // Main metrics
-                    HStack(spacing: 30) {
-                        MetricCard(
-                            title: "Download",
-                            value: speedUnit.formatBps(result.dlThroughput),
-                            icon: "arrow.down.circle.fill",
-                            color: .blue
-                        )
-
-                        MetricCard(
-                            title: "Upload",
-                            value: speedUnit.formatBps(result.ulThroughput),
-                            icon: "arrow.up.circle.fill",
-                            color: .green
-                        )
+                    // Tab picker for Insights vs Raw Data
+                    Picker("View", selection: $selectedTab) {
+                        Text("Insights").tag(0)
+                        Text("Raw Data").tag(1)
                     }
+                    .pickerStyle(.segmented)
+                    .frame(width: 200)
 
-                    HStack(spacing: 30) {
-                        if let rpm = result.responsivenessValue {
-                            MetricCard(
-                                title: "Responsiveness",
-                                value: "\(rpm) RPM",
-                                subtitle: result.responsivenessRating,
-                                icon: "speedometer",
-                                color: responsivenessColor(rpm)
-                            )
+                    if selectedTab == 0 {
+                        // Insights Tab - Plain language explanations
+                        InsightsView(result: result)
+                    } else {
+                        // Raw Data Tab - Technical metrics
+                        RawMetricsView(result: result, speedUnit: speedUnit)
+
+                        // Detailed metrics
+                        if hasDetailedMetrics(result) {
+                            DetailedMetricsSection(result: result)
                         }
 
-                        if let rtt = result.baseRtt {
-                            MetricCard(
-                                title: "Base Latency",
-                                value: String(format: "%.1f ms", rtt),
-                                icon: "clock.fill",
-                                color: .orange
-                            )
-                        }
+                        // Connection info
+                        ConnectionInfoSection(result: result)
                     }
-
-                    Divider()
-
-                    // Detailed metrics
-                    if hasDetailedMetrics(result) {
-                        DetailedMetricsSection(result: result)
-                    }
-
-                    // Connection info
-                    ConnectionInfoSection(result: result)
 
                 } else {
                     ContentUnavailableView(
@@ -83,6 +60,64 @@ struct ResultsView: View {
         result.avgIdleTcpHandshake != nil ||
         result.avgIdleTlsHandshake != nil ||
         result.avgLoadedH2ReqResp != nil
+    }
+
+    private func responsivenessColor(_ rpm: Int) -> Color {
+        switch rpm {
+        case 0..<200: return .red
+        case 200..<800: return .orange
+        case 800..<1500: return .yellow
+        default: return .green
+        }
+    }
+}
+
+// MARK: - Raw Metrics View (Technical Data)
+
+struct RawMetricsView: View {
+    let result: NetworkQualityResult
+    let speedUnit: SpeedUnit
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Main metrics
+            HStack(spacing: 30) {
+                MetricCard(
+                    title: "Download",
+                    value: speedUnit.formatBps(result.dlThroughput),
+                    icon: "arrow.down.circle.fill",
+                    color: .blue
+                )
+
+                MetricCard(
+                    title: "Upload",
+                    value: speedUnit.formatBps(result.ulThroughput),
+                    icon: "arrow.up.circle.fill",
+                    color: .green
+                )
+            }
+
+            HStack(spacing: 30) {
+                if let rpm = result.responsivenessValue {
+                    MetricCard(
+                        title: "Responsiveness",
+                        value: "\(rpm) RPM",
+                        subtitle: result.responsivenessRating,
+                        icon: "speedometer",
+                        color: responsivenessColor(rpm)
+                    )
+                }
+
+                if let rtt = result.baseRtt {
+                    MetricCard(
+                        title: "Base Latency",
+                        value: String(format: "%.1f ms", rtt),
+                        icon: "clock.fill",
+                        color: .orange
+                    )
+                }
+            }
+        }
     }
 
     private func responsivenessColor(_ rpm: Int) -> Color {

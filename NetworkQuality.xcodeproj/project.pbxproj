@@ -16,6 +16,8 @@
 		A11111110000000000000008 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000008 /* SettingsView.swift */; };
 		A11111110000000000000009 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* ResultsView.swift */; };
 		A11111110000000000000010 /* GaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010 /* GaugeView.swift */; };
+		A11111110000000000000012 /* NetworkInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* NetworkInsights.swift */; };
+		A11111110000000000000013 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* InsightsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +32,8 @@
 		A10000000000000000000009 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
 		A10000000000000000000010 /* GaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaugeView.swift; sourceTree = "<group>"; };
 		A10000000000000000000011 /* NetworkQuality.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NetworkQuality.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000012 /* NetworkInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkInsights.swift; sourceTree = "<group>"; };
+		A10000000000000000000013 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,6 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000004 /* NetworkQualityResult.swift */,
+				A10000000000000000000012 /* NetworkInsights.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -104,6 +109,7 @@
 				A10000000000000000000008 /* SettingsView.swift */,
 				A10000000000000000000009 /* ResultsView.swift */,
 				A10000000000000000000010 /* GaugeView.swift */,
+				A10000000000000000000013 /* InsightsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -185,6 +191,8 @@
 				A11111110000000000000008 /* SettingsView.swift in Sources */,
 				A11111110000000000000009 /* ResultsView.swift in Sources */,
 				A11111110000000000000010 /* GaugeView.swift in Sources */,
+				A11111110000000000000012 /* NetworkInsights.swift in Sources */,
+				A11111110000000000000013 /* InsightsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

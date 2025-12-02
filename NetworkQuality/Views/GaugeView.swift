@@ -7,6 +7,8 @@ struct SpeedGaugeView: View {
     let color: Color
     let icon: String
     var speedUnit: SpeedUnit = .mbps
+    var showTitle: Bool = true
+    var size: CGFloat = 160
 
     private var progress: Double {
         guard maxSpeed > 0 else { return 0 }
@@ -21,15 +23,27 @@ struct SpeedGaugeView: View {
         speedUnit.format(speed).unit
     }
 
+    private var lineWidth: CGFloat {
+        size * 0.125 // Proportional line width
+    }
+
+    private var iconFont: Font {
+        size < 140 ? .title3 : .title
+    }
+
+    private var speedFont: CGFloat {
+        size < 140 ? 28 : 36
+    }
+
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             ZStack {
                 // Background arc
                 Circle()
                     .trim(from: 0.15, to: 0.85)
                     .stroke(
                         color.opacity(0.2),
-                        style: StrokeStyle(lineWidth: 20, lineCap: .round)
+                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                     )
                     .rotationEffect(.degrees(90))
 
@@ -43,32 +57,34 @@ struct SpeedGaugeView: View {
                             startAngle: .degrees(0),
                             endAngle: .degrees(360)
                         ),
-                        style: StrokeStyle(lineWidth: 20, lineCap: .round)
+                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                     )
                     .rotationEffect(.degrees(90))
                     .animation(.easeOut(duration: 0.5), value: progress)
 
                 // Center content
-                VStack(spacing: 4) {
+                VStack(spacing: 2) {
                     Image(systemName: icon)
-                        .font(.title)
+                        .font(iconFont)
                         .foregroundStyle(color)
 
                     Text(formattedSpeedValue)
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .font(.system(size: speedFont, weight: .bold, design: .rounded))
                         .contentTransition(.numericText())
                         .animation(.default, value: formattedSpeedValue)
 
                     Text(formattedSpeedUnit)
-                        .font(.subheadline)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
-            .frame(width: 160, height: 160)
+            .frame(width: size, height: size)
 
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            if showTitle {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

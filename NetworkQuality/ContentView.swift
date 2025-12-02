@@ -89,35 +89,17 @@ struct SpeedTestView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Spacer()
-
-            // Speed gauges
-            HStack(spacing: 30) {
-                SpeedGaugeView(
-                    title: "Download",
-                    speed: viewModel.isRunning ?
-                        viewModel.currentDownloadSpeed :
-                        (viewModel.currentResult?.downloadSpeedMbps ?? 0),
-                    maxSpeed: max(viewModel.maxDownloadSpeed, 1000),
-                    color: .blue,
-                    icon: "arrow.down.circle.fill",
-                    speedUnit: speedUnit
-                )
-
-                SpeedGaugeView(
-                    title: "Upload",
-                    speed: viewModel.isRunning ?
-                        viewModel.currentUploadSpeed :
-                        (viewModel.currentResult?.uploadSpeedMbps ?? 0),
-                    maxSpeed: max(viewModel.maxUploadSpeed, 1000),
-                    color: .green,
-                    icon: "arrow.up.circle.fill",
-                    speedUnit: speedUnit
-                )
+            // Test mode picker at top
+            Picker("", selection: $viewModel.testConfiguration.mode) {
+                Text("Parallel").tag(TestMode.parallel)
+                Text("Sequential").tag(TestMode.sequential)
             }
-            .padding(.horizontal)
+            .pickerStyle(.segmented)
+            .frame(width: 180)
+            .disabled(viewModel.isRunning)
+            .padding(.top, 12)
 
-            // Start/Stop button with progress
+            // Start/Stop button
             Button(action: {
                 if viewModel.isRunning {
                     viewModel.cancelTest()
@@ -128,50 +110,67 @@ struct SpeedTestView: View {
                 }
             }) {
                 ZStack {
-                    // Background circle
                     Circle()
                         .fill(viewModel.isRunning ? Color.red.opacity(0.1) : Color.accentColor.opacity(0.1))
-                        .frame(width: 80, height: 80)
+                        .frame(width: 50, height: 50)
 
                     if viewModel.isRunning {
-                        // Indeterminate progress ring (continuous rotation)
                         Circle()
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 4)
-                            .frame(width: 74, height: 74)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 3)
+                            .frame(width: 44, height: 44)
 
                         Circle()
                             .trim(from: 0, to: 0.3)
-                            .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                            .frame(width: 74, height: 74)
+                            .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .frame(width: 44, height: 44)
                             .rotationEffect(.degrees(viewModel.service.elapsedTime * 90))
                             .animation(.linear(duration: 0.1), value: viewModel.service.elapsedTime)
 
-                        // Elapsed time
                         Text(String(format: "%.0fs", viewModel.service.elapsedTime))
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
                     } else {
                         Image(systemName: "play.fill")
-                            .font(.system(size: 30))
+                            .font(.system(size: 18))
                             .foregroundStyle(Color.accentColor)
                     }
                 }
             }
             .buttonStyle(.plain)
 
-            // Test mode picker
-            Picker("", selection: $viewModel.testConfiguration.mode) {
-                Text("Parallel").tag(TestMode.parallel)
-                Text("Sequential").tag(TestMode.sequential)
+            // Speed gauges
+            HStack(spacing: 50) {
+                SpeedGaugeView(
+                    title: "Download",
+                    speed: viewModel.isRunning ?
+                        viewModel.currentDownloadSpeed :
+                        (viewModel.currentResult?.downloadSpeedMbps ?? 0),
+                    maxSpeed: max(viewModel.maxDownloadSpeed, 1000),
+                    color: .blue,
+                    icon: "arrow.down.circle.fill",
+                    speedUnit: speedUnit,
+                    showTitle: false,
+                    size: 130
+                )
+
+                SpeedGaugeView(
+                    title: "Upload",
+                    speed: viewModel.isRunning ?
+                        viewModel.currentUploadSpeed :
+                        (viewModel.currentResult?.uploadSpeedMbps ?? 0),
+                    maxSpeed: max(viewModel.maxUploadSpeed, 1000),
+                    color: .green,
+                    icon: "arrow.up.circle.fill",
+                    speedUnit: speedUnit,
+                    showTitle: false,
+                    size: 130
+                )
             }
-            .pickerStyle(.segmented)
-            .frame(width: 180)
-            .disabled(viewModel.isRunning)
 
             Spacer()
 
-            // Stats row (always reserve space, show when test completes)
-            HStack(spacing: 24) {
-                if let result = viewModel.currentResult, !viewModel.isRunning {
+            // Stats row
+            if let result = viewModel.currentResult, !viewModel.isRunning {
+                HStack(spacing: 20) {
                     StatPill(
                         icon: "clock",
                         label: "Latency",
@@ -185,10 +184,17 @@ struct SpeedTestView: View {
                         color: .purple
                     )
                 }
+
+                // Insight summary
+                CompactInsightSummary(result: result)
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .frame(height: 36)
-            .padding(.bottom, 12)
+
+            Spacer()
+                .frame(height: 8)
         }
+        .animation(.easeInOut(duration: 0.3), value: viewModel.currentResult?.id)
     }
 }
 
@@ -202,14 +208,14 @@ struct StatPill: View {
         HStack(spacing: 6) {
             Image(systemName: icon)
                 .foregroundStyle(color)
-                .font(.caption)
+                .font(.system(size: 12))
             Text(label)
-                .font(.system(.caption, design: .rounded))
+                .font(.system(size: 12, design: .rounded))
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.system(.callout, design: .rounded, weight: .medium))
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(color.opacity(0.1))
         .clipShape(Capsule())
