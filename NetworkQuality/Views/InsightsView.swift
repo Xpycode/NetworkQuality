@@ -35,6 +35,11 @@ struct InsightsView: View {
             // Overall Summary Card
             OverallSummaryCard(summary: overallSummary)
 
+            // Bufferbloat Visualization (if we have both idle and loaded latency)
+            if let idleLatency = result.baseRtt, let rpm = result.responsivenessValue {
+                BufferbloatVisualization(idleLatencyMs: idleLatency, rpm: rpm)
+            }
+
             // What Can You Do Section
             WhatCanYouDoSection(speedInsight: speedInsight)
 
@@ -282,6 +287,207 @@ struct ActivityStatusRow: View {
         .padding(.vertical, 6)
         .background(Color.secondary.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+// MARK: - Bufferbloat Visualization
+
+struct BufferbloatVisualization: View {
+    let idleLatencyMs: Double
+    let rpm: Int
+
+    // Loaded latency calculated from RPM: 60000ms / RPM = RTT in ms
+    private var loadedLatencyMs: Double {
+        60000.0 / Double(rpm)
+    }
+
+    private var bufferbloatMs: Double {
+        max(0, loadedLatencyMs - idleLatencyMs)
+    }
+
+    private var bufferbloatMultiplier: Double {
+        guard idleLatencyMs > 0 else { return 1 }
+        return loadedLatencyMs / idleLatencyMs
+    }
+
+    private var severity: BufferbloatSeverity {
+        switch bufferbloatMultiplier {
+        case ..<1.5: return .minimal
+        case 1.5..<3: return .moderate
+        case 3..<6: return .significant
+        default: return .severe
+        }
+    }
+
+    enum BufferbloatSeverity {
+        case minimal, moderate, significant, severe
+
+        var color: Color {
+            switch self {
+            case .minimal: return .green
+            case .moderate: return .blue
+            case .significant: return .orange
+            case .severe: return .red
+            }
+        }
+
+        var label: String {
+            switch self {
+            case .minimal: return "Minimal"
+            case .moderate: return "Moderate"
+            case .significant: return "Significant"
+            case .severe: return "Severe"
+            }
+        }
+
+        var explanation: String {
+            switch self {
+            case .minimal:
+                return "Your network maintains low latency even under load. Real-time applications work great."
+            case .moderate:
+                return "Some latency increase under load, but generally acceptable for most uses."
+            case .significant:
+                return "Noticeable delay when network is busy. Video calls may stutter during large downloads."
+            case .severe:
+                return "High latency under load causes poor experience for real-time apps. Consider enabling SQM on your router."
+            }
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack {
+                Image(systemName: "waveform.path.ecg")
+                    .foregroundStyle(severity.color)
+                Text("Bufferbloat")
+                    .font(.headline)
+                Spacer()
+                Text(severity.label)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(severity.color)
+            }
+
+            // Bar chart visualization
+            VStack(alignment: .leading, spacing: 8) {
+                // Idle latency bar
+                LatencyBar(
+                    label: "Idle",
+                    value: idleLatencyMs,
+                    maxValue: max(loadedLatencyMs, idleLatencyMs),
+                    color: .green,
+                    description: "When network is quiet"
+                )
+
+                // Loaded latency bar
+                LatencyBar(
+                    label: "Loaded",
+                    value: loadedLatencyMs,
+                    maxValue: max(loadedLatencyMs, idleLatencyMs),
+                    color: severity.color,
+                    description: "When network is busy"
+                )
+            }
+
+            // Bufferbloat amount
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Latency increase under load")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("+\(Int(bufferbloatMs)) ms")
+                            .font(.system(.title3, design: .rounded, weight: .semibold))
+                            .foregroundStyle(severity.color)
+                        Text("(\(String(format: "%.1f", bufferbloatMultiplier))× slower)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+            }
+
+            // Explanation
+            Text(severity.explanation)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+
+            // What is bufferbloat? expandable
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Bufferbloat occurs when your router or modem queues too many packets, causing delays. It's why you can have fast download speeds but still experience:")
+                        .font(.caption)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Video call freezes during downloads", systemImage: "video.slash")
+                        Label("Game lag spikes when others are streaming", systemImage: "gamecontroller")
+                        Label("Sluggish web browsing on a \"fast\" connection", systemImage: "globe")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                    Text("**Solution:** Enable SQM (Smart Queue Management) on your router, or use a router with good queue management like eero or OpenWrt.")
+                        .font(.caption)
+                        .padding(.top, 4)
+                }
+                .padding(.top, 8)
+            } label: {
+                Text("What is bufferbloat?")
+                    .font(.caption.weight(.medium))
+            }
+        }
+        .padding()
+        .background(severity.color.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+struct LatencyBar: View {
+    let label: String
+    let value: Double
+    let maxValue: Double
+    let color: Color
+    let description: String
+
+    private var barWidth: CGFloat {
+        guard maxValue > 0 else { return 0 }
+        return CGFloat(value / maxValue)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(label)
+                    .font(.caption.weight(.medium))
+                    .frame(width: 50, alignment: .leading)
+
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        // Background
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.1))
+                            .frame(height: 20)
+
+                        // Value bar
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(color.opacity(0.7))
+                            .frame(width: geometry.size.width * barWidth, height: 20)
+
+                        // Value label inside bar
+                        Text("\(Int(value)) ms")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white)
+                            .padding(.leading, 8)
+                    }
+                }
+                .frame(height: 20)
+            }
+
+            Text(description)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 50)
+        }
     }
 }
 

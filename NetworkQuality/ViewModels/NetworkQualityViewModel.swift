@@ -37,8 +37,9 @@ class NetworkQualityViewModel: ObservableObject {
 
     init() {
         // Forward service's objectWillChange to this ViewModel so UI updates
+        // Throttle to prevent AttributeGraph cycle errors from rapid updates
         service.objectWillChange
-            .receive(on: RunLoop.main)
+            .throttle(for: .milliseconds(100), scheduler: RunLoop.main, latest: true)
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
             }

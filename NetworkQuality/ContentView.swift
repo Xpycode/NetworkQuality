@@ -31,7 +31,7 @@ struct ContentView: View {
             Group {
                 switch selectedTab {
                 case 0:
-                    SpeedTestView(viewModel: viewModel)
+                    SpeedTestView(viewModel: viewModel, selectedTab: $selectedTab)
                 case 1:
                     ResultsView(
                         result: viewModel.currentResult,
@@ -81,6 +81,7 @@ struct ContentView: View {
 
 struct SpeedTestView: View {
     @ObservedObject var viewModel: NetworkQualityViewModel
+    @Binding var selectedTab: Int
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
 
     private var speedUnit: SpeedUnit {
@@ -119,12 +120,15 @@ struct SpeedTestView: View {
                             .stroke(Color.gray.opacity(0.2), lineWidth: 3)
                             .frame(width: 44, height: 44)
 
-                        Circle()
-                            .trim(from: 0, to: 0.3)
-                            .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                            .frame(width: 44, height: 44)
-                            .rotationEffect(.degrees(viewModel.service.elapsedTime * 90))
-                            .animation(.linear(duration: 0.1), value: viewModel.service.elapsedTime)
+                        // Use TimelineView for smooth continuous animation
+                        TimelineView(.animation) { timeline in
+                            let seconds = timeline.date.timeIntervalSinceReferenceDate
+                            Circle()
+                                .trim(from: 0, to: 0.3)
+                                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                                .frame(width: 44, height: 44)
+                                .rotationEffect(.degrees(seconds * 90))
+                        }
 
                         Text(String(format: "%.0fs", viewModel.service.elapsedTime))
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -185,10 +189,21 @@ struct SpeedTestView: View {
                     )
                 }
 
-                // Insight summary
-                CompactInsightSummary(result: result)
-                    .padding(.horizontal, 16)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                // Insight summary with link to details
+                Button {
+                    selectedTab = 1
+                } label: {
+                    HStack {
+                        CompactInsightSummary(result: result)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .help("View detailed insights and bufferbloat analysis")
             }
 
             Spacer()
@@ -226,6 +241,7 @@ struct HistoryView: View {
     let results: [NetworkQualityResult]
     @ObservedObject var viewModel: NetworkQualityViewModel
     @State private var exportPresented = false
+    @State private var selectedResult: NetworkQualityResult?
 
     var body: some View {
         VStack {
@@ -239,6 +255,10 @@ struct HistoryView: View {
                 List {
                     ForEach(results.reversed()) { result in
                         HistoryRow(result: result)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedResult = result
+                            }
                     }
                 }
                 .listStyle(.inset)
@@ -255,6 +275,75 @@ struct HistoryView: View {
         .sheet(isPresented: $exportPresented) {
             ExportSheet(jsonContent: viewModel.exportResults())
         }
+        .sheet(item: $selectedResult) { result in
+            HistoryDetailSheet(result: result)
+        }
+    }
+}
+
+struct HistoryDetailSheet: View {
+    let result: NetworkQualityResult
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+
+    private var speedUnit: SpeedUnit {
+        SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header with date/time and speeds
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(result.timestamp, style: .date)
+                                .font(.title2.weight(.semibold))
+                            Text(result.timestamp, style: .time)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        HStack(spacing: 20) {
+                            VStack(alignment: .trailing) {
+                                Text(speedUnit.formatBps(result.dlThroughput))
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(.blue)
+                                Text("Download")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            VStack(alignment: .trailing) {
+                                Text(speedUnit.formatBps(result.ulThroughput))
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(.green)
+                                Text("Upload")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color.secondary.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    // Full insights view
+                    InsightsView(result: result)
+                }
+                .padding()
+            }
+            .navigationTitle("Test Details")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .frame(minWidth: 500, minHeight: 600)
     }
 }
 
@@ -314,6 +403,10 @@ struct HistoryRow: View {
                             .foregroundStyle(.purple)
                     }
                 }
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
             .font(.system(.body, design: .rounded))
         }
