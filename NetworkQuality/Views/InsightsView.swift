@@ -413,7 +413,7 @@ struct BufferbloatVisualization: View {
                 .foregroundStyle(.secondary)
 
             // What is bufferbloat? expandable
-            DisclosureGroup {
+            ExpandableSection(title: "What is bufferbloat?") {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Bufferbloat occurs when your router or modem queues too many packets, causing delays. It's why you can have fast download speeds but still experience:")
                         .font(.caption)
@@ -430,10 +430,6 @@ struct BufferbloatVisualization: View {
                         .font(.caption)
                         .padding(.top, 4)
                 }
-                .padding(.top, 8)
-            } label: {
-                Text("What is bufferbloat?")
-                    .font(.caption.weight(.medium))
             }
         }
         .padding()
@@ -552,6 +548,41 @@ struct CompactInsightSummary: View {
         case .fair: return "minus.circle.fill"
         case .good: return "checkmark.circle.fill"
         case .excellent: return "star.circle.fill"
+        }
+    }
+}
+
+// MARK: - Expandable Section (fully clickable header)
+
+struct ExpandableSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Text(title)
+                        .font(.caption.weight(.medium))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                content()
+                    .padding(.top, 8)
+            }
         }
     }
 }

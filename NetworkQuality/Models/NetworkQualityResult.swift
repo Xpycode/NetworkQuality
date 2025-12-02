@@ -51,6 +51,9 @@ struct NetworkQualityResult: Codable, Identifiable {
     let errorCode: Int?
     let errorDomain: String?
 
+    // Network metadata (connection info at time of test)
+    let networkMetadata: NetworkMetadata?
+
     enum CodingKeys: String, CodingKey {
         case dlThroughput = "dl_throughput"
         case ulThroughput = "ul_throughput"
@@ -122,6 +125,9 @@ struct NetworkQualityResult: Codable, Identifiable {
 
         errorCode = try container.decodeIfPresent(Int.self, forKey: .errorCode)
         errorDomain = try container.decodeIfPresent(String.self, forKey: .errorDomain)
+
+        // Network metadata is not in JSON, it's captured separately
+        networkMetadata = nil
     }
 
     func encode(to encoder: Encoder) throws {
@@ -202,7 +208,7 @@ struct NetworkQualityResult: Codable, Identifiable {
     }
 
     // Initializer for creating result from text summary output
-    init(downloadMbps: Double, uploadMbps: Double, responsivenessRPM: Double?, idleLatencyMs: Double?, interfaceName: String?) {
+    init(downloadMbps: Double, uploadMbps: Double, responsivenessRPM: Double?, idleLatencyMs: Double?, interfaceName: String?, networkMetadata: NetworkMetadata? = nil) {
         self.timestamp = Date()
         self.dlThroughput = Int64(downloadMbps * 1_000_000)
         self.ulThroughput = Int64(uploadMbps * 1_000_000)
@@ -233,6 +239,7 @@ struct NetworkQualityResult: Codable, Identifiable {
         self.ludSelfH2ReqResp = nil
         self.errorCode = nil
         self.errorDomain = nil
+        self.networkMetadata = networkMetadata
     }
 
     private func formatSpeed(_ bps: Int64?) -> String {

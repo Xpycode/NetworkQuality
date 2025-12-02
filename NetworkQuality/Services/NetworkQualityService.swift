@@ -293,12 +293,16 @@ class NetworkQualityService: ObservableObject {
             throw NetworkQualityError.parseError("Could not parse results from output: \(fullOutput.prefix(500))")
         }
 
+        // Capture network metadata at time of test
+        let networkMetadata = NetworkInfoService.shared.getCurrentMetadata()
+
         return NetworkQualityResult(
             downloadMbps: downloadMbps,
             uploadMbps: uploadMbps,
             responsivenessRPM: responsivenessRPM,
             idleLatencyMs: idleLatencyMs,
-            interfaceName: config.networkInterface.isEmpty ? nil : config.networkInterface
+            interfaceName: config.networkInterface.isEmpty ? nil : config.networkInterface,
+            networkMetadata: networkMetadata
         )
     }
 

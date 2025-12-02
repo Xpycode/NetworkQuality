@@ -329,6 +329,11 @@ struct HistoryDetailSheet: View {
                     .background(Color.secondary.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
+                    // Network metadata section
+                    if let metadata = result.networkMetadata {
+                        NetworkMetadataSection(metadata: metadata)
+                    }
+
                     // Full insights view
                     InsightsView(result: result)
                 }
@@ -344,6 +349,114 @@ struct HistoryDetailSheet: View {
             }
         }
         .frame(minWidth: 500, minHeight: 600)
+    }
+}
+
+struct NetworkMetadataSection: View {
+    let metadata: NetworkMetadata
+    @ObservedObject private var locationManager = LocationPermissionManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack {
+                Image(systemName: metadata.connectionType.icon)
+                    .foregroundStyle(.blue)
+                Text("Connection Info")
+                    .font(.headline)
+                Spacer()
+                Text(metadata.connectionType.rawValue)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Connection details grid
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 10) {
+                // Interface
+                MetadataItem(label: "Interface", value: metadata.interfaceName)
+
+                // IP Address
+                if let ip = metadata.localIPAddress {
+                    MetadataItem(label: "IP Address", value: ip)
+                }
+
+                // WiFi-specific info
+                if metadata.connectionType == .wifi {
+                    if let ssid = metadata.wifiSSID {
+                        MetadataItem(label: "Network", value: ssid)
+                    } else {
+                        // No SSID - show button to request permission
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Network")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button {
+                                locationManager.requestPermission()
+                            } label: {
+                                Label("Enable WiFi Name", systemImage: "location")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    if let rssi = metadata.wifiRSSI, let quality = metadata.signalQuality {
+                        MetadataItem(
+                            label: "Signal",
+                            value: "\(quality) (\(rssi) dBm)",
+                            valueColor: signalColor(rssi)
+                        )
+                    }
+
+                    if let channel = metadata.wifiChannel, let band = metadata.wifiBand {
+                        MetadataItem(label: "Channel", value: "\(channel) (\(band.rawValue))")
+                    }
+
+                    if let txRate = metadata.wifiTxRate {
+                        MetadataItem(label: "Link Speed", value: String(format: "%.0f Mbps", txRate))
+                    }
+
+                    if let security = metadata.wifiSecurity, security != .unknown {
+                        MetadataItem(label: "Security", value: security.rawValue)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color.blue.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func signalColor(_ rssi: Int) -> Color {
+        switch rssi {
+        case -50...0: return .green
+        case -60..<(-50): return .blue
+        case -70..<(-60): return .orange
+        default: return .red
+        }
+    }
+}
+
+struct MetadataItem: View {
+    let label: String
+    let value: String
+    var valueColor: Color = .primary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.subheadline)
+                .foregroundStyle(valueColor)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

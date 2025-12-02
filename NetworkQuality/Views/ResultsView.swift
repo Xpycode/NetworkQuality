@@ -24,6 +24,12 @@ struct ResultsView: View {
 
                     if selectedTab == 0 {
                         // Insights Tab - Plain language explanations
+
+                        // Network metadata section (if available)
+                        if let metadata = result.networkMetadata {
+                            NetworkMetadataSection(metadata: metadata)
+                        }
+
                         InsightsView(result: result)
                     } else {
                         // Raw Data Tab - Technical metrics
@@ -247,44 +253,52 @@ struct ConnectionInfoSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Connection Info")
-                .font(.headline)
-
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                if let interface = result.interfaceName {
-                    InfoItem(title: "Interface", value: interface)
-                }
-                if let dlFlows = result.dlFlows {
-                    InfoItem(title: "Download Flows", value: "\(dlFlows)")
-                }
-                if let ulFlows = result.ulFlows {
-                    InfoItem(title: "Upload Flows", value: "\(ulFlows)")
-                }
-                if let os = result.osVersion {
-                    InfoItem(title: "OS Version", value: os)
-                }
+            // Rich network metadata (if available)
+            if let metadata = result.networkMetadata {
+                NetworkMetadataSection(metadata: metadata)
             }
 
-            if let startDate = result.startDate, let endDate = result.endDate {
-                HStack {
-                    InfoItem(title: "Start", value: startDate)
-                    InfoItem(title: "End", value: endDate)
-                }
-            }
+            // Additional test info from JSON
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Test Details")
+                    .font(.headline)
 
-            if let errorCode = result.errorCode, let errorDomain = result.errorDomain {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                    Text("Error: \(errorDomain) (\(errorCode))")
-                        .foregroundStyle(.red)
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 12) {
+                    if let interface = result.interfaceName {
+                        InfoItem(title: "Interface", value: interface)
+                    }
+                    if let dlFlows = result.dlFlows {
+                        InfoItem(title: "Download Flows", value: "\(dlFlows)")
+                    }
+                    if let ulFlows = result.ulFlows {
+                        InfoItem(title: "Upload Flows", value: "\(ulFlows)")
+                    }
+                    if let os = result.osVersion {
+                        InfoItem(title: "OS Version", value: os)
+                    }
                 }
-                .padding(8)
-                .background(Color.red.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                if let startDate = result.startDate, let endDate = result.endDate {
+                    HStack {
+                        InfoItem(title: "Start", value: startDate)
+                        InfoItem(title: "End", value: endDate)
+                    }
+                }
+
+                if let errorCode = result.errorCode, let errorDomain = result.errorDomain {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                        Text("Error: \(errorDomain) (\(errorCode))")
+                            .foregroundStyle(.red)
+                    }
+                    .padding(8)
+                    .background(Color.red.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
             }
         }
     }
@@ -314,21 +328,42 @@ struct VerboseOutputSection: View {
     @State private var isExpanded = false
 
     var body: some View {
-        DisclosureGroup("Verbose Output (\(output.count) lines)", isExpanded: $isExpanded) {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) {
-                    ForEach(Array(output.enumerated()), id: \.offset) { index, line in
-                        Text(line)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Text("Verbose Output (\(output.count) lines)")
+                        .font(.headline)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 2) {
+                        ForEach(Array(output.enumerated()), id: \.offset) { index, line in
+                            Text(line)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
                     }
                 }
+                .frame(maxHeight: 200)
+                .padding(8)
+                .background(Color.secondary.opacity(0.05))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.top, 8)
             }
-            .frame(maxHeight: 200)
-            .padding(8)
-            .background(Color.secondary.opacity(0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
 }

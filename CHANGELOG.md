@@ -1,5 +1,52 @@
 # Changelog
 
+## 2025-12-02
+
+### UI-4: Rich Network Metadata and Location Permission
+
+#### New Features
+- **Network Metadata Capture**: Store detailed connection info with each test
+  - Connection type (WiFi/Ethernet)
+  - Interface name, local IP address
+  - WiFi details: RSSI signal strength, channel, band (2.4/5/6 GHz), link speed, security type
+- **SSID Access with Location Permission**:
+  - "Enable WiFi Name" button to request location permission
+  - Custom privacy message: "No location data is collected, stored, or shared"
+  - System dialog shows explanation from Info.plist
+- **Connection Info Section**: Shows in Results (both Insights and Raw Data tabs) and History detail view
+  - Signal quality color-coded (Excellent/Good/Fair/Weak/Poor)
+  - Displays all WiFi metrics in organized grid
+
+#### Files Added
+- `NetworkMetadata.swift`: NetworkMetadata model, NetworkInfoService, LocationPermissionManager
+
+---
+
+### UI-3: Bufferbloat Visualization and Insights Improvements
+
+#### New Features
+- **Bufferbloat Visualization**: Visual comparison of idle vs loaded latency
+  - Bar chart showing latency increase under load
+  - Severity rating (Minimal/Moderate/Significant/Severe) with color coding
+  - Latency multiplier display (e.g., "5.6× slower")
+  - Expandable "What is bufferbloat?" educational section
+- **RPM Rating Mode Toggle**: Switch between Practical and IETF thresholds in Settings
+  - Practical: Real-world thresholds for typical home networks
+  - IETF: Official RFC thresholds from draft-ietf-ippm-responsiveness
+- **Clickable History Rows**: Open full detail sheet with insights for any past test
+- **Clickable Insight Summary**: Main view summary navigates to Results tab
+- **Fully Clickable Expandable Sections**: "What is bufferbloat?" and "Verbose Output" headers are now fully clickable (not just the chevron)
+
+#### Bug Fixes
+- Fixed "Publishing changes from within view updates" warning by throttling objectWillChange
+- Fixed animation stutter by using TimelineView for smooth rotation
+
+#### Files Added
+- `NetworkInsights.swift`: Plain-language explanations, RPM thresholds, speed capabilities
+- `InsightsView.swift`: Full insights UI with bufferbloat visualization
+
+---
+
 ## 2025-12-01
 
 ### UI-2: Speed Unit Toggle, Progress Indicator, and UI Polish

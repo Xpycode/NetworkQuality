@@ -2,18 +2,31 @@
 
 Feature roadmap based on competitive analysis of macOS speed test apps.
 
-## High Impact
+## Completed
 
-### Bufferbloat Visualization
-Show idle vs. loaded latency graphically - the "before/after" that explains WHY RPM matters. This is the key educational differentiator.
+### ✅ Bufferbloat Visualization
+Show idle vs. loaded latency graphically - the "before/after" that explains WHY RPM matters.
+- Bar chart comparing idle vs loaded latency
+- Severity rating with color coding
+- Educational "What is bufferbloat?" section
 
-### Rich History Metadata
+### ✅ Rich History Metadata
 Store additional context with each test:
-- WiFi network name (SSID)
-- Connection type (WiFi/Ethernet)
-- IP address
-- ISP name
-- Geographic server location
+- ✅ WiFi network name (SSID) - requires location permission
+- ✅ Connection type (WiFi/Ethernet)
+- ✅ IP address
+- ✅ Signal strength (RSSI), channel, band, link speed, security
+- ❌ ISP name (would need external API)
+- ❌ Geographic server location (would need external API)
+
+### ✅ Plain-Language Insights
+- RPM explanations with activity impact ratings
+- "What can you do with this speed" capability grid
+- RPM Rating Mode toggle (Practical vs IETF thresholds)
+
+---
+
+## High Impact - Next Up
 
 ### Shareable Result Cards
 Generate image cards for social media sharing with:
@@ -21,6 +34,8 @@ Generate image cards for social media sharing with:
 - RPM rating
 - Plain-language summary
 - App branding
+
+---
 
 ## Essential
 
@@ -33,13 +48,15 @@ Persistent upload/download throughput display between tests. Makes the app a use
 - Essential for proving throttling or demanding service credits
 
 ### CSV Export
-Spreadsheet-friendly export format for history data.
+Spreadsheet-friendly export format for history data. (JSON already available)
 
 ### PDF Report
 Branded PDF report with:
 - Test results
 - Insights and recommendations
 - Historical trends
+
+---
 
 ## Medium Priority
 
@@ -56,6 +73,8 @@ Wrap common diagnostic tools in a friendly UI:
 
 ### VPN Comparison Mode
 Run tests with VPN on vs. off and highlight the difference. Helps users detect ISP throttling.
+
+---
 
 ## Longer Term
 
