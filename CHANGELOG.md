@@ -2,6 +2,26 @@
 
 ## 2025-12-02
 
+### UI-5: Shareable Result Cards
+
+#### New Features
+- **Share Button**: Added share menu to Results view with multiple options
+  - Copy Image: Copies a beautiful result card to clipboard
+  - Save Image: Saves result card as PNG file
+  - Share Text: Shares formatted text summary via macOS share sheet
+- **Result Card Design**: Visually appealing card for social sharing
+  - Header with gradient (blue to purple) and overall quality rating
+  - Download/Upload speeds in colored metric boxes
+  - Responsiveness (RPM) and Latency with rating badges
+  - Network info section showing connection type, WiFi name, band, signal quality
+  - Footer with timestamp and app branding
+  - Rendered at 2x scale (retina quality)
+
+#### Files Added
+- `ShareableResultCardView.swift`: Card UI, image rendering, ShareService, ShareMenuButton
+
+---
+
 ### UI-4: Rich Network Metadata and Location Permission
 
 #### New Features

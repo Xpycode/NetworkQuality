@@ -24,16 +24,13 @@ Store additional context with each test:
 - "What can you do with this speed" capability grid
 - RPM Rating Mode toggle (Practical vs IETF thresholds)
 
----
-
-## High Impact - Next Up
-
-### Shareable Result Cards
+### ✅ Shareable Result Cards
 Generate image cards for social media sharing with:
-- Speed results
-- RPM rating
-- Plain-language summary
-- App branding
+- Speed results (download/upload)
+- RPM rating with badge
+- Network info (connection type, WiFi name, signal quality)
+- Timestamp and app branding
+- Copy to clipboard, save as PNG, or share text summary
 
 ---
 

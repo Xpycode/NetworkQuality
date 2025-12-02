@@ -19,6 +19,7 @@
 		A11111110000000000000012 /* NetworkInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* NetworkInsights.swift */; };
 		A11111110000000000000013 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* InsightsView.swift */; };
 		A11111110000000000000014 /* NetworkMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* NetworkMetadata.swift */; };
+		A11111110000000000000015 /* ShareableResultCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* ShareableResultCardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 		A10000000000000000000012 /* NetworkInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkInsights.swift; sourceTree = "<group>"; };
 		A10000000000000000000013 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 		A10000000000000000000014 /* NetworkMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMetadata.swift; sourceTree = "<group>"; };
+		A10000000000000000000015 /* ShareableResultCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableResultCardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +115,7 @@
 				A10000000000000000000009 /* ResultsView.swift */,
 				A10000000000000000000010 /* GaugeView.swift */,
 				A10000000000000000000013 /* InsightsView.swift */,
+				A10000000000000000000015 /* ShareableResultCardView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -197,6 +200,7 @@
 				A11111110000000000000012 /* NetworkInsights.swift in Sources */,
 				A11111110000000000000013 /* InsightsView.swift in Sources */,
 				A11111110000000000000014 /* NetworkMetadata.swift in Sources */,
+				A11111110000000000000015 /* ShareableResultCardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
