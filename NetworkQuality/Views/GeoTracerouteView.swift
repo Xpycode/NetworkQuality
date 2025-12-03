@@ -50,6 +50,28 @@ struct GeoTracerouteView: View {
                     .disabled(targetHost.isEmpty)
                 }
 
+                // Popular hosts (wrapping grid)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 70), spacing: 6)], spacing: 6) {
+                    ForEach(popularHosts, id: \.0) { host, icon in
+                        Button {
+                            targetHost = host
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: icon)
+                                    .font(.caption2)
+                                Text(host.replacingOccurrences(of: ".com", with: ""))
+                                    .font(.caption2)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 5)
+                            .background(Color.secondary.opacity(0.1))
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
                 if tracerouteService.isRunning || geoService.isLoading {
                     HStack(spacing: 8) {
                         ProgressView()
@@ -109,6 +131,13 @@ struct GeoTracerouteView: View {
 
     private var mapPanel: some View {
         Map(position: $mapPosition) {
+            // Route polyline connecting hops
+            if hopsWithCoordinates.count >= 2 {
+                MapPolyline(coordinates: hopsWithCoordinates.compactMap { $0.coordinate })
+                    .stroke(.blue.opacity(0.6), lineWidth: 3)
+            }
+
+            // Hop markers
             ForEach(hopsWithCoordinates) { hop in
                 Annotation(hop.displayName, coordinate: hop.coordinate!) {
                     HopMarker(hop: hop, isSelected: selectedHop?.id == hop.id)
@@ -167,6 +196,15 @@ struct GeoTracerouteView: View {
     }
 
     // MARK: - Helpers
+
+    private let popularHosts = [
+        ("8.8.8.8", "server.rack"),
+        ("1.1.1.1", "cloud.fill"),
+        ("google.com", "g.circle.fill"),
+        ("apple.com", "apple.logo"),
+        ("github.com", "chevron.left.forwardslash.chevron.right"),
+        ("cloudflare.com", "cloud.fill"),
+    ]
 
     private var hopsWithCoordinates: [GeoTracerouteHop] {
         geoService.geoHops.filter { $0.coordinate != nil }
