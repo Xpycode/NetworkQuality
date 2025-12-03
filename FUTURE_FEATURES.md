@@ -39,15 +39,15 @@ Spreadsheet-friendly export format for history data:
 - WiFi details: SSID, band, channel, signal quality
 - Proper escaping for special characters
 
+### ✅ Network Troubleshooting Tools
+Wrap common diagnostic tools in a friendly UI:
+- Ping with real-time stats (min/avg/max/loss)
+- Traceroute with visual hop display
+- DNS lookup with multiple record types (A, AAAA, CNAME, MX, TXT, NS)
+
 ---
 
 ## High Priority
-
-### Network Troubleshooting Tools
-Wrap common diagnostic tools in a friendly UI:
-- Ping (with visualization)
-- Traceroute
-- DNS lookup
 
 ### Multi-Server Testing
 Test against multiple infrastructures in one session:

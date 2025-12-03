@@ -127,6 +127,8 @@ class NetworkInfoService {
                         wifiBand = .band5GHz
                     case .band6GHz:
                         wifiBand = .band6GHz
+                    case .bandUnknown:
+                        wifiBand = .unknown
                     @unknown default:
                         wifiBand = .unknown
                     }
@@ -230,6 +232,24 @@ class NetworkInfoService {
             return .wpa3Personal
         case .wpa3Enterprise:
             return .wpa3Enterprise
+        case .wpaPersonalMixed:
+            return .wpaPersonal
+        case .wpaEnterpriseMixed:
+            return .wpaEnterprise
+        case .wpa3Transition:
+            return .wpa3Personal
+        case .personal:
+            return .wpa2Personal
+        case .enterprise:
+            return .wpa2Enterprise
+        case .dynamicWEP:
+            return .wep
+        case .OWE:
+            return .unknown
+        case .oweTransition:
+            return .unknown
+        case .unknown:
+            return .unknown
         @unknown default:
             return .unknown
         }

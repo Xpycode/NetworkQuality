@@ -20,6 +20,8 @@
 		A11111110000000000000013 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* InsightsView.swift */; };
 		A11111110000000000000014 /* NetworkMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* NetworkMetadata.swift */; };
 		A11111110000000000000015 /* ShareableResultCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* ShareableResultCardView.swift */; };
+		A11111110000000000000016 /* NetworkToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* NetworkToolsView.swift */; };
+		A11111110000000000000017 /* NetworkToolsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* NetworkToolsService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +40,8 @@
 		A10000000000000000000013 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 		A10000000000000000000014 /* NetworkMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMetadata.swift; sourceTree = "<group>"; };
 		A10000000000000000000015 /* ShareableResultCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableResultCardView.swift; sourceTree = "<group>"; };
+		A10000000000000000000016 /* NetworkToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkToolsView.swift; sourceTree = "<group>"; };
+		A10000000000000000000017 /* NetworkToolsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkToolsService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,6 +92,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000005 /* NetworkQualityService.swift */,
+				A10000000000000000000017 /* NetworkToolsService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -116,6 +121,7 @@
 				A10000000000000000000010 /* GaugeView.swift */,
 				A10000000000000000000013 /* InsightsView.swift */,
 				A10000000000000000000015 /* ShareableResultCardView.swift */,
+				A10000000000000000000016 /* NetworkToolsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -201,6 +207,8 @@
 				A11111110000000000000013 /* InsightsView.swift in Sources */,
 				A11111110000000000000014 /* NetworkMetadata.swift in Sources */,
 				A11111110000000000000015 /* ShareableResultCardView.swift in Sources */,
+				A11111110000000000000016 /* NetworkToolsView.swift in Sources */,
+				A11111110000000000000017 /* NetworkToolsService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

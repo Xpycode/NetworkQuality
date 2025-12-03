@@ -2,6 +2,31 @@
 
 ## 2025-12-02
 
+### UI-7: Network Tools
+
+#### New Features
+- **Network Tools Section**: New sidebar section with diagnostic tools
+- **Ping Tool**:
+  - Real-time ping with color-coded latency
+  - Statistics summary (min/avg/max/loss)
+  - Auto-scrolling results list
+  - Start/Stop functionality
+- **Traceroute Tool**:
+  - Visual hop-by-hop path display
+  - RTT times for each hop
+  - Timeout detection (* * *)
+  - Hostname and IP resolution
+- **DNS Lookup Tool**:
+  - Multiple record types (A, AAAA, CNAME, MX, TXT, NS)
+  - TTL display
+  - Color-coded record type badges
+
+#### Files Added
+- `NetworkToolsView.swift`: UI for all three tools
+- `NetworkToolsService.swift`: PingService, TracerouteService, DNSLookupService
+
+---
+
 ### UI-6: CSV Export
 
 #### New Features

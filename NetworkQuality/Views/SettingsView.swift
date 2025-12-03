@@ -94,9 +94,13 @@ struct SettingsView: View {
                 HStack {
                     Text("Max Run Time (seconds)")
                     Spacer()
-                    TextField("0 = unlimited", value: $config.maxRunTime, format: .number)
+                    Text("0 = unlimited")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                    TextField("", value: $config.maxRunTime, format: .number)
                         .textFieldStyle(.roundedBorder)
-                        .frame(width: 100)
+                        .frame(width: 60)
                 }
 
                 TextField("Custom Config URL", text: $config.customConfigURL)

@@ -20,6 +20,11 @@ struct ContentView: View {
                         .tag(2)
                 }
 
+                Section("Tools") {
+                    Label("Network Tools", systemImage: "network")
+                        .tag(4)
+                }
+
                 Section("Options") {
                     Label("Settings", systemImage: "gear")
                         .tag(3)
@@ -45,11 +50,13 @@ struct ContentView: View {
                         config: $viewModel.testConfiguration,
                         availableInterfaces: viewModel.availableInterfaces
                     )
+                case 4:
+                    NetworkToolsView()
                 default:
                     Text("Select an option")
                 }
             }
-            .frame(minWidth: 500, minHeight: 300)
+            .frame(minWidth: 680, minHeight: 300)
         }
         .navigationTitle("Network Quality")
         .toolbar {
