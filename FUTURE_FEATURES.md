@@ -53,6 +53,14 @@ Test against multiple infrastructures in one session:
 - Visual comparison charts and summary table
 - Helps identify routing issues or server-specific throttling
 
+### ✅ Multi-Server Share Card
+Shareable comparison card for multi-server results:
+- Orange/amber gradient header (speed/energy theme)
+- Provider ranking with crown for fastest
+- Download, upload, latency for each provider
+- Variance analysis (consistent/minor/significant)
+- Copy image, save PNG, or copy text summary
+
 ---
 
 ## High Priority
@@ -91,3 +99,21 @@ Run tests with VPN on vs. off and highlight the difference. Helps users detect I
 
 ### Per-Application Bandwidth Attribution
 Show which apps use bandwidth during tests. Would require additional permissions (Network Extension or similar).
+
+### Multi-Server History
+Save multi-server comparison results over time:
+- Store all provider results together as a comparison set
+- View historical comparisons to track provider performance
+- Identify patterns in routing or throttling over time
+
+### Network Tools Share Cards
+Generate shareable cards for diagnostic results:
+- Ping summary card with min/avg/max/loss stats
+- Traceroute visualization showing hop path
+- DNS lookup results with record details
+
+### Network Tools History
+Save diagnostic tool results for later review:
+- Store ping sessions with statistics
+- Save traceroute paths for comparison
+- Keep DNS lookup history

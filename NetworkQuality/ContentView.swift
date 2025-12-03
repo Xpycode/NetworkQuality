@@ -25,6 +25,8 @@ struct ContentView: View {
                         .tag(4)
                     Label("Multi-Server", systemImage: "server.rack")
                         .tag(5)
+                    Label("Route Map", systemImage: "map")
+                        .tag(6)
                 }
 
                 Section("Options") {
@@ -56,6 +58,8 @@ struct ContentView: View {
                     NetworkToolsView()
                 case 5:
                     MultiServerTestView()
+                case 6:
+                    GeoTracerouteView()
                 default:
                     Text("Select an option")
                 }

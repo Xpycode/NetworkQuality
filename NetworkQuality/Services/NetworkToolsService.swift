@@ -156,8 +156,8 @@ class TracerouteService: ObservableObject {
         self.process = process
 
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/traceroute")
-        // -m 30: max 30 hops, -q 1: 1 query per hop (faster), -w 2: 2 second timeout
-        process.arguments = ["-m", "30", "-q", "1", "-w", "2", host]
+        // -I: use ICMP (works better through firewalls), -m 30: max 30 hops, -q 1: 1 query per hop, -w 3: 3 second timeout
+        process.arguments = ["-I", "-m", "30", "-q", "1", "-w", "3", host]
 
         let pipe = Pipe()
         process.standardOutput = pipe

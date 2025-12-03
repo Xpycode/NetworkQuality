@@ -25,6 +25,8 @@
 		A11111110000000000000018 /* MultiServerTestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* MultiServerTestService.swift */; };
 		A11111110000000000000019 /* MultiServerTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000019 /* MultiServerTestView.swift */; };
 		A11111110000000000000020 /* MultiServerShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000020 /* MultiServerShareCardView.swift */; };
+		A11111110000000000000021 /* GeoIPService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000021 /* GeoIPService.swift */; };
+		A11111110000000000000022 /* GeoTracerouteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000022 /* GeoTracerouteView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +50,9 @@
 		A10000000000000000000018 /* MultiServerTestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiServerTestService.swift; sourceTree = "<group>"; };
 		A10000000000000000000019 /* MultiServerTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiServerTestView.swift; sourceTree = "<group>"; };
 		A10000000000000000000020 /* MultiServerShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiServerShareCardView.swift; sourceTree = "<group>"; };
+		A10000000000000000000021 /* GeoIPService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoIPService.swift; sourceTree = "<group>"; };
+		A10000000000000000000022 /* GeoTracerouteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoTracerouteView.swift; sourceTree = "<group>"; };
+		A10000000000000000000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +85,7 @@
 				A13000000000000000000007 /* Views */,
 				A10000000000000000000003 /* Assets.xcassets */,
 				A10000000000000000000011 /* NetworkQuality.entitlements */,
+				A10000000000000000000023 /* Info.plist */,
 			);
 			path = NetworkQuality;
 			sourceTree = "<group>";
@@ -100,6 +106,7 @@
 				A10000000000000000000005 /* NetworkQualityService.swift */,
 				A10000000000000000000017 /* NetworkToolsService.swift */,
 				A10000000000000000000018 /* MultiServerTestService.swift */,
+				A10000000000000000000021 /* GeoIPService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -131,6 +138,7 @@
 				A10000000000000000000016 /* NetworkToolsView.swift */,
 				A10000000000000000000019 /* MultiServerTestView.swift */,
 				A10000000000000000000020 /* MultiServerShareCardView.swift */,
+				A10000000000000000000022 /* GeoTracerouteView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -221,6 +229,8 @@
 				A11111110000000000000018 /* MultiServerTestService.swift in Sources */,
 				A11111110000000000000019 /* MultiServerTestView.swift in Sources */,
 				A11111110000000000000020 /* MultiServerShareCardView.swift in Sources */,
+				A11111110000000000000021 /* GeoIPService.swift in Sources */,
+				A11111110000000000000022 /* GeoTracerouteView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -362,6 +372,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NetworkQuality/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSLocationUsageDescription = "Network Quality uses location services only to read your WiFi network name (SSID). No location data is collected, stored, or shared.";
@@ -392,6 +403,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NetworkQuality/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSLocationUsageDescription = "Network Quality uses location services only to read your WiFi network name (SSID). No location data is collected, stored, or shared.";
