@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import AppKit
 
 // Shared state to persist across tab switches
 @MainActor
@@ -114,8 +115,67 @@ struct MultiServerTestView: View {
         VStack(spacing: 16) {
             Divider()
 
-            Text("Results Comparison")
-                .font(.headline)
+            HStack {
+                Text("Results Comparison")
+                    .font(.headline)
+
+                Spacer()
+
+                // Share menu
+                Menu {
+                    Button {
+                        copyImageFeedback = MultiServerShareService.shared.copyToClipboard(results: coordinator.results)
+                    } label: {
+                        Label("Copy Image", systemImage: "doc.on.doc")
+                    }
+
+                    Button {
+                        MultiServerShareService.shared.saveCard(results: coordinator.results)
+                    } label: {
+                        Label("Save Image", systemImage: "square.and.arrow.down")
+                    }
+
+                    Divider()
+
+                    Button {
+                        let text = MultiServerShareService.shared.textSummary(results: coordinator.results, speedUnit: speedUnit)
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(text, forType: .string)
+                        copyTextFeedback = true
+                    } label: {
+                        Label("Copy Text Summary", systemImage: "doc.plaintext")
+                    }
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 14))
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 30)
+                .overlay(alignment: .trailing) {
+                    if copyImageFeedback {
+                        Text("Copied!")
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                            .offset(x: 50)
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                    copyImageFeedback = false
+                                }
+                            }
+                    }
+                    if copyTextFeedback {
+                        Text("Copied!")
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                            .offset(x: 50)
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                    copyTextFeedback = false
+                                }
+                            }
+                    }
+                }
+            }
 
             // Speed comparison bars
             SpeedComparisonChart(results: coordinator.results, speedUnit: speedUnit)
@@ -124,6 +184,9 @@ struct MultiServerTestView: View {
             ComparisonTable(results: coordinator.results, speedUnit: speedUnit)
         }
     }
+
+    @State private var copyImageFeedback = false
+    @State private var copyTextFeedback = false
 }
 
 // MARK: - Provider Card

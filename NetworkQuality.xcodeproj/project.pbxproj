@@ -24,6 +24,7 @@
 		A11111110000000000000017 /* NetworkToolsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* NetworkToolsService.swift */; };
 		A11111110000000000000018 /* MultiServerTestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* MultiServerTestService.swift */; };
 		A11111110000000000000019 /* MultiServerTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000019 /* MultiServerTestView.swift */; };
+		A11111110000000000000020 /* MultiServerShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000020 /* MultiServerShareCardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,6 +47,7 @@
 		A10000000000000000000017 /* NetworkToolsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkToolsService.swift; sourceTree = "<group>"; };
 		A10000000000000000000018 /* MultiServerTestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiServerTestService.swift; sourceTree = "<group>"; };
 		A10000000000000000000019 /* MultiServerTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiServerTestView.swift; sourceTree = "<group>"; };
+		A10000000000000000000020 /* MultiServerShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiServerShareCardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,6 +130,7 @@
 				A10000000000000000000015 /* ShareableResultCardView.swift */,
 				A10000000000000000000016 /* NetworkToolsView.swift */,
 				A10000000000000000000019 /* MultiServerTestView.swift */,
+				A10000000000000000000020 /* MultiServerShareCardView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -217,6 +220,7 @@
 				A11111110000000000000017 /* NetworkToolsService.swift in Sources */,
 				A11111110000000000000018 /* MultiServerTestService.swift in Sources */,
 				A11111110000000000000019 /* MultiServerTestView.swift in Sources */,
+				A11111110000000000000020 /* MultiServerShareCardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
