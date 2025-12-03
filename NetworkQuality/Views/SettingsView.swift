@@ -90,6 +90,17 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Multi-Server Testing") {
+                Toggle("Apple Sequential Mode", isOn: Binding(
+                    get: { UserDefaults.standard.bool(forKey: "appleSequentialMode") },
+                    set: { UserDefaults.standard.set($0, forKey: "appleSequentialMode") }
+                ))
+
+                Text("Run Apple's download and upload tests separately instead of in parallel. Takes longer but may be more accurate.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Advanced Options") {
                 HStack {
                     Text("Max Run Time (seconds)")

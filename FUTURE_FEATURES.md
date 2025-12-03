@@ -45,17 +45,17 @@ Wrap common diagnostic tools in a friendly UI:
 - Traceroute with visual hop display
 - DNS lookup with multiple record types (A, AAAA, CNAME, MX, TXT, NS)
 
+### ✅ Multi-Server Testing
+Test against multiple infrastructures in one session:
+- Apple (networkQuality)
+- Cloudflare (HTTP-based speed test)
+- M-Lab NDT7 (WebSocket protocol)
+- Visual comparison charts and summary table
+- Helps identify routing issues or server-specific throttling
+
 ---
 
 ## High Priority
-
-### Multi-Server Testing
-Test against multiple infrastructures in one session:
-- Apple (networkQuality)
-- Cloudflare
-- M-Lab (NDT7)
-
-Helps identify routing issues or server-specific throttling.
 
 ### Geographic Connection Visualization
 Map view showing where network traffic routes through, inspired by GlassWire.

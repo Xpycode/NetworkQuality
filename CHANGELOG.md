@@ -1,5 +1,36 @@
 # Changelog
 
+## 2025-12-03
+
+### UI-8: Multi-Server Testing
+
+#### New Features
+- **Multi-Server Speed Testing**: Compare speeds across three major server infrastructures
+  - Apple (networkQuality command)
+  - Cloudflare (speed.cloudflare.com)
+  - M-Lab NDT7 (WebSocket-based testing)
+- **Provider Cards**: Individual test cards for each provider
+  - Progress indicator with current speed
+  - Download/Upload results with latency
+  - Server location display
+  - Individual "Retest" functionality
+- **Comparison View**: Visual comparison of results
+  - Speed bars sorted by performance
+  - Color-coded by provider
+  - Summary table with all metrics
+- **Toolbar Integration**: "Run All Tests" button runs sequential tests
+
+#### Technical Implementation
+- Cloudflare: HTTP GET/POST to `speed.cloudflare.com/__down` and `__up`
+- M-Lab NDT7: WebSocket protocol with Locate API server discovery
+- Sequential testing to avoid network interference between providers
+
+#### Files Added
+- `MultiServerTestService.swift`: Provider protocol, Cloudflare, M-Lab, Apple implementations
+- `MultiServerTestView.swift`: UI with provider cards and comparison charts
+
+---
+
 ## 2025-12-02
 
 ### UI-7: Network Tools

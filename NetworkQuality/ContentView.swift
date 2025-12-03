@@ -23,6 +23,8 @@ struct ContentView: View {
                 Section("Tools") {
                     Label("Network Tools", systemImage: "network")
                         .tag(4)
+                    Label("Multi-Server", systemImage: "server.rack")
+                        .tag(5)
                 }
 
                 Section("Options") {
@@ -52,6 +54,8 @@ struct ContentView: View {
                     )
                 case 4:
                     NetworkToolsView()
+                case 5:
+                    MultiServerTestView()
                 default:
                     Text("Select an option")
                 }
