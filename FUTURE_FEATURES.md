@@ -89,6 +89,21 @@ Local network speed test between Macs:
 - Latency measurement with ping tests
 - No manual IP entry required
 
+### ✅ PDF Report
+Branded PDF report with:
+- Test results
+- Insights and recommendations
+- Historical trends
+
+### ✅ VPN Comparison Mode
+Run tests with VPN on vs. off and highlight the difference. Helps users detect ISP throttling.
+
+### ✅ Network Tools Share Cards
+Generate shareable cards for diagnostic results:
+- Ping summary card with min/avg/max/loss stats
+- Traceroute visualization showing hop path
+- DNS lookup results with record details
+
 ---
 
 ## Lower Priority
@@ -101,25 +116,10 @@ Persistent upload/download throughput display between tests. Makes the app a use
 - Log results for ISP performance documentation
 - Essential for proving throttling or demanding service credits
 
-### PDF Report
-Branded PDF report with:
-- Test results
-- Insights and recommendations
-- Historical trends
-
 ### Notification Alerts
 - Alert when speed drops below configured threshold
 - Connection lost notification
 - Speed recovered after outage
 
-### VPN Comparison Mode
-Run tests with VPN on vs. off and highlight the difference. Helps users detect ISP throttling.
-
 ### Per-Application Bandwidth Attribution
 Show which apps use bandwidth during tests. Would require additional permissions (Network Extension or similar).
-
-### Network Tools Share Cards
-Generate shareable cards for diagnostic results:
-- Ping summary card with min/avg/max/loss stats
-- Traceroute visualization showing hop path
-- DNS lookup results with record details
