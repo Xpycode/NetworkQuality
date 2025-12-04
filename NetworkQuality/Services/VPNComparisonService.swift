@@ -168,7 +168,12 @@ class VPNComparisonService: ObservableObject {
     @Published var withoutVPNResult: SpeedTestSnapshot?
     @Published var withVPNResult: SpeedTestSnapshot?
 
+    // Live speed tracking during tests
+    @Published var currentDownloadSpeed: Double = 0
+    @Published var currentUploadSpeed: Double = 0
+
     private let networkService = NetworkQualityService()
+    private var speedObservationTask: Task<Void, Never>?
 
     enum ComparisonPhase: String {
         case idle = "Ready"
@@ -375,9 +380,33 @@ class VPNComparisonService: ObservableObject {
     }
 
     private func runSpeedTest() async -> NetworkQualityResult? {
+        // Reset speeds
+        currentDownloadSpeed = 0
+        currentUploadSpeed = 0
+
+        // Start observing speed updates from the network service
+        speedObservationTask = Task { [weak self] in
+            guard let self = self else { return }
+            while !Task.isCancelled {
+                // Poll the network service for current speeds
+                await MainActor.run {
+                    self.currentDownloadSpeed = self.networkService.currentDownloadSpeed
+                    self.currentUploadSpeed = self.networkService.currentUploadSpeed
+                }
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            }
+        }
+
         // Run networkQuality test
         var config = TestConfiguration()
         config.mode = .parallel
+
+        defer {
+            speedObservationTask?.cancel()
+            speedObservationTask = nil
+            currentDownloadSpeed = 0
+            currentUploadSpeed = 0
+        }
 
         do {
             let result = try await networkService.runTest(config: config)
@@ -388,9 +417,13 @@ class VPNComparisonService: ObservableObject {
     }
 
     func cancel() {
+        speedObservationTask?.cancel()
+        speedObservationTask = nil
         networkService.cancelTest()
         isRunning = false
         currentPhase = .idle
         progress = ""
+        currentDownloadSpeed = 0
+        currentUploadSpeed = 0
     }
 }

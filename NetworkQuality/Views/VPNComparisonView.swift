@@ -103,10 +103,34 @@ struct VPNComparisonView: View {
                     Text(service.currentPhase.rawValue)
                         .font(.headline)
 
-                    Text(service.progress)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                    // Show live speeds during testing phases
+                    if service.currentPhase == .testingWithVPN || service.currentPhase == .testingWithoutVPN {
+                        if service.currentDownloadSpeed > 0 || service.currentUploadSpeed > 0 {
+                            HStack(spacing: 20) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .foregroundStyle(.blue)
+                                    Text(formatSpeed(service.currentDownloadSpeed))
+                                        .font(.system(.body, design: .rounded, weight: .semibold))
+                                        .monospacedDigit()
+                                }
+
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.up.circle.fill")
+                                        .foregroundStyle(.green)
+                                    Text(formatSpeed(service.currentUploadSpeed))
+                                        .font(.system(.body, design: .rounded, weight: .semibold))
+                                        .monospacedDigit()
+                                }
+                            }
+                            .padding(.vertical, 8)
+                        }
+                    } else {
+                        Text(service.progress)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
 
                     if service.currentPhase == .waitingForVPN {
                         Text("Toggle your VPN connection, then wait for the test to continue automatically.")
