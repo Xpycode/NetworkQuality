@@ -58,7 +58,7 @@ class PDFReportService {
             return nil
         }
 
-        var mediaBox = CGRect(origin: .zero, size: pageSize)
+        let mediaBox = CGRect(origin: .zero, size: pageSize)
         context.beginPDFPage([kCGPDFContextMediaBox as String: mediaBox] as CFDictionary)
 
         if let cgImage = renderer.cgImage {
