@@ -192,34 +192,58 @@ class VPNComparisonService: ObservableObject {
     }
 
     private func detectVPNConnection() -> VPNStatus {
-        // Check for VPN interfaces (utun, ppp, ipsec, etc.)
+        // Check for VPN interfaces with active IP addresses
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&ifaddr) == 0 else { return .unknown }
         defer { freeifaddrs(ifaddr) }
 
-        var vpnInterfaces: [String] = []
+        var vpnInterfacesWithIP: Set<String> = []
+        var isTailscale = false
         var current = ifaddr
 
         while let addr = current {
             let name = String(cString: addr.pointee.ifa_name)
+            let family = addr.pointee.ifa_addr?.pointee.sa_family
 
             // Common VPN interface prefixes
-            if name.hasPrefix("utun") || name.hasPrefix("ppp") ||
-               name.hasPrefix("ipsec") || name.hasPrefix("tun") ||
-               name.hasPrefix("tap") {
-                if !vpnInterfaces.contains(name) {
-                    vpnInterfaces.append(name)
+            let isVPNInterface = name.hasPrefix("utun") || name.hasPrefix("ppp") ||
+                                 name.hasPrefix("ipsec") || name.hasPrefix("tun") ||
+                                 name.hasPrefix("tap")
+
+            // Only count VPN interfaces that have an actual IP address (IPv4)
+            // This ensures we don't detect disconnected VPN interfaces
+            if isVPNInterface && family == UInt8(AF_INET) {
+                // Get the IP address to check for Tailscale's CGNAT range (100.x.x.x)
+                if let sockaddr = addr.pointee.ifa_addr {
+                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                    if getnameinfo(sockaddr, socklen_t(sockaddr.pointee.sa_len),
+                                   &hostname, socklen_t(hostname.count),
+                                   nil, 0, NI_NUMERICHOST) == 0 {
+                        let ipAddress = String(cString: hostname)
+
+                        // Tailscale uses 100.x.x.x (CGNAT range)
+                        if ipAddress.hasPrefix("100.") {
+                            isTailscale = true
+                        }
+
+                        vpnInterfacesWithIP.insert(name)
+                    }
                 }
             }
 
             current = addr.pointee.ifa_next
         }
 
-        if vpnInterfaces.isEmpty {
+        if vpnInterfacesWithIP.isEmpty {
             return .disconnected
         }
 
-        // Try to get VPN name from System Preferences
+        // Determine VPN name
+        if isTailscale {
+            return .connected(name: "Tailscale")
+        }
+
+        // Try to get VPN name from System Preferences for traditional VPNs
         let vpnName = getActiveVPNName()
         return .connected(name: vpnName)
     }
