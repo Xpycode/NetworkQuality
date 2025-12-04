@@ -633,3 +633,113 @@ struct StatCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
+
+// MARK: - LAN Speed History View
+
+struct LANSpeedHistoryView: View {
+    @ObservedObject var historyManager: HistoryManager
+    @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+
+    private var speedUnit: SpeedUnit {
+        SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
+    }
+
+    var body: some View {
+        VStack {
+            if historyManager.lanSpeedHistory.isEmpty {
+                ContentUnavailableView(
+                    "No LAN Speed History",
+                    systemImage: "wifi",
+                    description: Text("Run LAN speed tests to build history")
+                )
+            } else {
+                List {
+                    ForEach(historyManager.lanSpeedHistory) { entry in
+                        LANSpeedHistoryRow(entry: entry, speedUnit: speedUnit)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    historyManager.deleteLANSpeedEntry(entry)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                    }
+                }
+                .listStyle(.inset)
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button(role: .destructive, action: {
+                    historyManager.clearLANSpeedHistory()
+                }) {
+                    Label("Clear History", systemImage: "trash")
+                }
+                .disabled(historyManager.lanSpeedHistory.isEmpty)
+            }
+        }
+    }
+}
+
+struct LANSpeedHistoryRow: View {
+    let entry: LANSpeedHistoryEntry
+    let speedUnit: SpeedUnit
+
+    var body: some View {
+        HStack(spacing: 16) {
+            // Icon
+            Image(systemName: "desktopcomputer")
+                .font(.title2)
+                .foregroundStyle(.blue)
+                .frame(width: 36)
+
+            // Peer and time
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.peerName)
+                    .font(.subheadline.weight(.medium))
+                HStack(spacing: 4) {
+                    Text(entry.timestamp, style: .date)
+                    Text("at")
+                    Text(entry.timestamp, style: .time)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            // Speeds
+            HStack(spacing: 16) {
+                VStack(alignment: .trailing, spacing: 2) {
+                    let dl = speedUnit.format(entry.downloadSpeed)
+                    Text(dl.value)
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.blue)
+                    Text(dl.unit)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    let ul = speedUnit.format(entry.uploadSpeed)
+                    Text(ul.value)
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.green)
+                    Text(ul.unit)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(String(format: "%.1f", entry.latency))
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.orange)
+                    Text("ms")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 6)
+    }
+}

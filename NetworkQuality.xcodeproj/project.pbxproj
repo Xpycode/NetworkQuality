@@ -29,6 +29,8 @@
 		A11111110000000000000022 /* GeoTracerouteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000022 /* GeoTracerouteView.swift */; };
 		A11111110000000000000024 /* HistoryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000024 /* HistoryModels.swift */; };
 		A11111110000000000000025 /* HistoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000025 /* HistoryViews.swift */; };
+		A11111110000000000000026 /* LANSpeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000026 /* LANSpeedService.swift */; };
+		A11111110000000000000027 /* LANSpeedTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027 /* LANSpeedTestView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -57,6 +59,8 @@
 		A10000000000000000000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000024 /* HistoryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryModels.swift; sourceTree = "<group>"; };
 		A10000000000000000000025 /* HistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViews.swift; sourceTree = "<group>"; };
+		A10000000000000000000026 /* LANSpeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANSpeedService.swift; sourceTree = "<group>"; };
+		A10000000000000000000027 /* LANSpeedTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANSpeedTestView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +116,7 @@
 				A10000000000000000000017 /* NetworkToolsService.swift */,
 				A10000000000000000000018 /* MultiServerTestService.swift */,
 				A10000000000000000000021 /* GeoIPService.swift */,
+				A10000000000000000000026 /* LANSpeedService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -145,6 +150,7 @@
 				A10000000000000000000020 /* MultiServerShareCardView.swift */,
 				A10000000000000000000022 /* GeoTracerouteView.swift */,
 				A10000000000000000000025 /* HistoryViews.swift */,
+				A10000000000000000000027 /* LANSpeedTestView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -239,6 +245,8 @@
 				A11111110000000000000022 /* GeoTracerouteView.swift in Sources */,
 				A11111110000000000000024 /* HistoryModels.swift in Sources */,
 				A11111110000000000000025 /* HistoryViews.swift in Sources */,
+				A11111110000000000000026 /* LANSpeedService.swift in Sources */,
+				A11111110000000000000027 /* LANSpeedTestView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

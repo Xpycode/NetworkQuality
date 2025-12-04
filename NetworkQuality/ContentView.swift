@@ -28,6 +28,8 @@ struct ContentView: View {
                         .tag(5)
                     Label("Route Map", systemImage: "map")
                         .tag(6)
+                    Label("LAN Speed", systemImage: "wifi")
+                        .tag(9)
                 }
 
                 Section("History") {
@@ -35,6 +37,8 @@ struct ContentView: View {
                         .tag(7)
                     Label("Tools History", systemImage: "doc.text.magnifyingglass")
                         .tag(8)
+                    Label("LAN Speed History", systemImage: "clock.badge.checkmark")
+                        .tag(10)
                 }
 
                 Section("Options") {
@@ -72,6 +76,10 @@ struct ContentView: View {
                     MultiServerHistoryView(historyManager: historyManager)
                 case 8:
                     NetworkToolsHistoryView(historyManager: historyManager)
+                case 9:
+                    LANSpeedTestView(historyManager: historyManager)
+                case 10:
+                    LANSpeedHistoryView(historyManager: historyManager)
                 default:
                     Text("Select an option")
                 }
@@ -91,10 +99,13 @@ struct ContentView: View {
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
-                Button(action: { viewModel.clearHistory() }) {
-                    Label("Clear", systemImage: "trash")
+                // Only show main clear button for speed test history (tab 2)
+                if selectedTab == 2 {
+                    Button(action: { viewModel.clearHistory() }) {
+                        Label("Clear", systemImage: "trash")
+                    }
+                    .disabled(viewModel.results.isEmpty)
                 }
-                .disabled(viewModel.results.isEmpty)
             }
         }
         .alert("Error", isPresented: $viewModel.showError) {

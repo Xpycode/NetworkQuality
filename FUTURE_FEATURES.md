@@ -81,12 +81,13 @@ Save diagnostic tool results for later review:
 - Keep DNS lookup history
 - Filter by tool type
 
----
-
-## High Priority
-
-### LAN Speed Testing
-Simple local network speed test between Macs without server setup. Highly requested but poorly served by existing apps.
+### ✅ LAN Speed Testing
+Local network speed test between Macs:
+- Bonjour discovery to find other Macs on network
+- Server mode toggle to accept incoming tests
+- Download and upload speed measurement
+- Latency measurement with ping tests
+- No manual IP entry required
 
 ---
 

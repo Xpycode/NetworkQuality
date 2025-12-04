@@ -140,15 +140,41 @@ struct DNSRecordDetail: Codable, Identifiable {
     }
 }
 
+// MARK: - LAN Speed History
+
+struct LANSpeedHistoryEntry: Identifiable, Codable {
+    let id: UUID
+    let timestamp: Date
+    let peerName: String
+    let downloadSpeed: Double // Mbps
+    let uploadSpeed: Double // Mbps
+    let latency: Double // ms
+    let bytesTransferred: Int64
+    let duration: TimeInterval
+
+    init(id: UUID = UUID(), timestamp: Date = Date(), peerName: String, downloadSpeed: Double, uploadSpeed: Double, latency: Double, bytesTransferred: Int64, duration: TimeInterval) {
+        self.id = id
+        self.timestamp = timestamp
+        self.peerName = peerName
+        self.downloadSpeed = downloadSpeed
+        self.uploadSpeed = uploadSpeed
+        self.latency = latency
+        self.bytesTransferred = bytesTransferred
+        self.duration = duration
+    }
+}
+
 // MARK: - History Manager
 
 @MainActor
 class HistoryManager: ObservableObject {
     @Published var multiServerHistory: [MultiServerHistoryEntry] = []
     @Published var networkToolsHistory: [NetworkToolsHistoryEntry] = []
+    @Published var lanSpeedHistory: [LANSpeedHistoryEntry] = []
 
     private let multiServerKey = "multiServerHistory"
     private let networkToolsKey = "networkToolsHistory"
+    private let lanSpeedKey = "lanSpeedHistory"
     private let maxEntries = 100
 
     init() {
@@ -276,6 +302,35 @@ class HistoryManager: ObservableObject {
         persistToolsHistory()
     }
 
+    // MARK: - LAN Speed History
+
+    func saveLANSpeedResult(peerName: String, downloadSpeed: Double, uploadSpeed: Double, latency: Double, bytesTransferred: Int64, duration: TimeInterval) {
+        let entry = LANSpeedHistoryEntry(
+            peerName: peerName,
+            downloadSpeed: downloadSpeed,
+            uploadSpeed: uploadSpeed,
+            latency: latency,
+            bytesTransferred: bytesTransferred,
+            duration: duration
+        )
+        lanSpeedHistory.insert(entry, at: 0)
+
+        if lanSpeedHistory.count > maxEntries {
+            lanSpeedHistory = Array(lanSpeedHistory.prefix(maxEntries))
+        }
+        persistLanSpeedHistory()
+    }
+
+    func deleteLANSpeedEntry(_ entry: LANSpeedHistoryEntry) {
+        lanSpeedHistory.removeAll { $0.id == entry.id }
+        persistLanSpeedHistory()
+    }
+
+    func clearLANSpeedHistory() {
+        lanSpeedHistory.removeAll()
+        persistLanSpeedHistory()
+    }
+
     // MARK: - Persistence
 
     private func loadHistory() {
@@ -289,6 +344,12 @@ class HistoryManager: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: networkToolsKey),
            let decoded = try? JSONDecoder().decode([NetworkToolsHistoryEntry].self, from: data) {
             networkToolsHistory = decoded
+        }
+
+        // Load LAN speed history
+        if let data = UserDefaults.standard.data(forKey: lanSpeedKey),
+           let decoded = try? JSONDecoder().decode([LANSpeedHistoryEntry].self, from: data) {
+            lanSpeedHistory = decoded
         }
     }
 
@@ -309,5 +370,11 @@ class HistoryManager: ObservableObject {
             networkToolsHistory = Array(networkToolsHistory.prefix(maxEntries))
         }
         persistToolsHistory()
+    }
+
+    private func persistLanSpeedHistory() {
+        if let encoded = try? JSONEncoder().encode(lanSpeedHistory) {
+            UserDefaults.standard.set(encoded, forKey: lanSpeedKey)
+        }
     }
 }
