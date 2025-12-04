@@ -523,7 +523,7 @@ class LANSpeedService: ObservableObject {
             let progress = 0.1 + min(elapsed / testDuration, 1.0) * 0.4
 
             await MainActor.run {
-                testProgress = LANTestProgress(phase: .download, progress: progress, currentSpeed: speedMbps, message: String(format: "%.1f Mbps", speedMbps))
+                testProgress = LANTestProgress(phase: .download, progress: progress, currentSpeed: speedMbps, message: "Receiving data...")
             }
 
             if elapsed > testDuration + 2 {
@@ -565,7 +565,7 @@ class LANSpeedService: ObservableObject {
             let progress = 0.55 + min(elapsed / testDuration, 1.0) * 0.4
 
             await MainActor.run {
-                testProgress = LANTestProgress(phase: .upload, progress: progress, currentSpeed: speedMbps, message: String(format: "%.1f Mbps", speedMbps))
+                testProgress = LANTestProgress(phase: .upload, progress: progress, currentSpeed: speedMbps, message: "Sending data...")
             }
         }
 
