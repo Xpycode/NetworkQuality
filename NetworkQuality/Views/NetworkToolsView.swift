@@ -146,9 +146,42 @@ struct PingToolView: View {
             .padding(.horizontal)
 
             if !pingService.results.isEmpty {
-                // Stats summary
-                PingStatsView(results: pingService.results)
-                    .padding(.horizontal)
+                // Stats summary with share buttons
+                HStack {
+                    PingStatsView(results: pingService.results)
+
+                    Spacer()
+
+                    // Share buttons
+                    HStack(spacing: 8) {
+                        Button {
+                            Task { @MainActor in
+                                _ = NetworkToolsShareService.shared.copyPingCardToClipboard(
+                                    host: currentHost.isEmpty ? state.pingHost : currentHost,
+                                    results: pingService.results
+                                )
+                            }
+                        } label: {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+
+                        Button {
+                            Task { @MainActor in
+                                NetworkToolsShareService.shared.savePingCard(
+                                    host: currentHost.isEmpty ? state.pingHost : currentHost,
+                                    results: pingService.results
+                                )
+                            }
+                        } label: {
+                            Label("Save", systemImage: "square.and.arrow.down")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+                .padding(.horizontal)
 
                 Divider()
 
@@ -349,6 +382,41 @@ struct TracerouteToolView: View {
                     }
                     .padding()
                 }
+
+                // Share buttons
+                if !tracerouteService.isRunning && !tracerouteService.hops.isEmpty {
+                    HStack {
+                        Spacer()
+                        HStack(spacing: 8) {
+                            Button {
+                                Task { @MainActor in
+                                    _ = NetworkToolsShareService.shared.copyTracerouteCardToClipboard(
+                                        host: currentHost.isEmpty ? state.tracerouteHost : currentHost,
+                                        hops: tracerouteService.hops
+                                    )
+                                }
+                            } label: {
+                                Label("Copy Card", systemImage: "doc.on.doc")
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+
+                            Button {
+                                Task { @MainActor in
+                                    NetworkToolsShareService.shared.saveTracerouteCard(
+                                        host: currentHost.isEmpty ? state.tracerouteHost : currentHost,
+                                        hops: tracerouteService.hops
+                                    )
+                                }
+                            } label: {
+                                Label("Save Card", systemImage: "square.and.arrow.down")
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
             } else {
                 ContentUnavailableView(
                     "Ready to Trace",
@@ -500,6 +568,41 @@ struct DNSLookupToolView: View {
                     }
                     .padding()
                 }
+
+                // Share buttons
+                HStack {
+                    Spacer()
+                    HStack(spacing: 8) {
+                        Button {
+                            Task { @MainActor in
+                                _ = NetworkToolsShareService.shared.copyDNSCardToClipboard(
+                                    host: currentHost.isEmpty ? state.dnsHost : currentHost,
+                                    recordType: currentRecordType,
+                                    records: dnsService.records
+                                )
+                            }
+                        } label: {
+                            Label("Copy Card", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+
+                        Button {
+                            Task { @MainActor in
+                                NetworkToolsShareService.shared.saveDNSCard(
+                                    host: currentHost.isEmpty ? state.dnsHost : currentHost,
+                                    recordType: currentRecordType,
+                                    records: dnsService.records
+                                )
+                            }
+                        } label: {
+                            Label("Save Card", systemImage: "square.and.arrow.down")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+                .padding(.horizontal)
             } else if let error = dnsService.error {
                 ContentUnavailableView(
                     "Lookup Failed",

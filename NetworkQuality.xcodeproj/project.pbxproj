@@ -34,6 +34,7 @@
 		A11111110000000000000028 /* PDFReportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000028 /* PDFReportService.swift */; };
 		A11111110000000000000029 /* VPNComparisonService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000029 /* VPNComparisonService.swift */; };
 		A11111110000000000000030 /* VPNComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000030 /* VPNComparisonView.swift */; };
+		A11111110000000000000031 /* NetworkToolsShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000031 /* NetworkToolsShareCardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -67,6 +68,7 @@
 		A10000000000000000000028 /* PDFReportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReportService.swift; sourceTree = "<group>"; };
 		A10000000000000000000029 /* VPNComparisonService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNComparisonService.swift; sourceTree = "<group>"; };
 		A10000000000000000000030 /* VPNComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNComparisonView.swift; sourceTree = "<group>"; };
+		A10000000000000000000031 /* NetworkToolsShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkToolsShareCardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +162,7 @@
 				A10000000000000000000025 /* HistoryViews.swift */,
 				A10000000000000000000027 /* LANSpeedTestView.swift */,
 				A10000000000000000000030 /* VPNComparisonView.swift */,
+				A10000000000000000000031 /* NetworkToolsShareCardView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -259,6 +262,7 @@
 				A11111110000000000000028 /* PDFReportService.swift in Sources */,
 				A11111110000000000000029 /* VPNComparisonService.swift in Sources */,
 				A11111110000000000000030 /* VPNComparisonView.swift in Sources */,
+				A11111110000000000000031 /* NetworkToolsShareCardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
