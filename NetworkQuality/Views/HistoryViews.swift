@@ -5,6 +5,11 @@ import SwiftUI
 struct MultiServerHistoryView: View {
     @ObservedObject var historyManager: HistoryManager
     @State private var selectedEntry: MultiServerHistoryEntry?
+    @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+
+    private var speedUnit: SpeedUnit {
+        SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
+    }
 
     var body: some View {
         VStack {
@@ -17,7 +22,7 @@ struct MultiServerHistoryView: View {
             } else {
                 List {
                     ForEach(historyManager.multiServerHistory) { entry in
-                        MultiServerHistoryRow(entry: entry)
+                        MultiServerHistoryRow(entry: entry, speedUnit: speedUnit)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 selectedEntry = entry
@@ -52,6 +57,7 @@ struct MultiServerHistoryView: View {
 
 struct MultiServerHistoryRow: View {
     let entry: MultiServerHistoryEntry
+    let speedUnit: SpeedUnit
 
     var body: some View {
         HStack(spacing: 12) {
@@ -68,15 +74,16 @@ struct MultiServerHistoryRow: View {
             Divider()
 
             // Provider results summary
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 ForEach(entry.results) { result in
-                    VStack(spacing: 2) {
+                    HStack(spacing: 4) {
                         Image(systemName: iconForProvider(result.provider))
                             .font(.caption)
                             .foregroundStyle(result.isSuccess ? .primary : .secondary)
 
                         if result.isSuccess {
-                            Text(String(format: "%.0f", result.downloadSpeed))
+                            let formatted = speedUnit.format(result.downloadSpeed)
+                            Text(formatted.value)
                                 .font(.system(size: 11, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.blue)
                         } else {
@@ -85,7 +92,6 @@ struct MultiServerHistoryRow: View {
                                 .foregroundStyle(.red)
                         }
                     }
-                    .frame(width: 40)
                 }
             }
 
@@ -123,6 +129,11 @@ struct MultiServerHistoryRow: View {
 struct MultiServerHistoryDetailSheet: View {
     let entry: MultiServerHistoryEntry
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+
+    private var speedUnit: SpeedUnit {
+        SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
+    }
 
     var body: some View {
         NavigationStack {
@@ -163,7 +174,7 @@ struct MultiServerHistoryDetailSheet: View {
                             .font(.headline)
 
                         ForEach(entry.results) { result in
-                            ProviderResultRow(result: result, isFastest: entry.fastestDownload?.id == result.id)
+                            ProviderResultRow(result: result, isFastest: entry.fastestDownload?.id == result.id, speedUnit: speedUnit)
                         }
                     }
 
@@ -206,6 +217,7 @@ struct MultiServerHistoryDetailSheet: View {
 struct ProviderResultRow: View {
     let result: StoredSpeedTestResult
     let isFastest: Bool
+    let speedUnit: SpeedUnit
 
     var body: some View {
         HStack(spacing: 16) {
@@ -227,10 +239,11 @@ struct ProviderResultRow: View {
             if result.isSuccess {
                 // Download
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(String(format: "%.1f", result.downloadSpeed))
+                    let dl = speedUnit.format(result.downloadSpeed)
+                    Text(dl.value)
                         .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .foregroundStyle(.blue)
-                    Text("Mbps")
+                    Text(dl.unit)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -238,10 +251,11 @@ struct ProviderResultRow: View {
 
                 // Upload
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(String(format: "%.1f", result.uploadSpeed))
+                    let ul = speedUnit.format(result.uploadSpeed)
+                    Text(ul.value)
                         .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .foregroundStyle(.green)
-                    Text("Mbps")
+                    Text(ul.unit)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
