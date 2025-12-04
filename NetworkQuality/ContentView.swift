@@ -30,6 +30,8 @@ struct ContentView: View {
                         .tag(6)
                     Label("LAN Speed", systemImage: "wifi")
                         .tag(9)
+                    Label("VPN Compare", systemImage: "network.badge.shield.half.filled")
+                        .tag(11)
                 }
 
                 Section("History") {
@@ -80,6 +82,8 @@ struct ContentView: View {
                     LANSpeedTestView(historyManager: historyManager)
                 case 10:
                     LANSpeedHistoryView(historyManager: historyManager)
+                case 11:
+                    VPNComparisonView()
                 default:
                     Text("Select an option")
                 }

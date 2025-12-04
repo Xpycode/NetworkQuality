@@ -32,6 +32,8 @@
 		A11111110000000000000026 /* LANSpeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000026 /* LANSpeedService.swift */; };
 		A11111110000000000000027 /* LANSpeedTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027 /* LANSpeedTestView.swift */; };
 		A11111110000000000000028 /* PDFReportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000028 /* PDFReportService.swift */; };
+		A11111110000000000000029 /* VPNComparisonService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000029 /* VPNComparisonService.swift */; };
+		A11111110000000000000030 /* VPNComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000030 /* VPNComparisonView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,6 +65,8 @@
 		A10000000000000000000026 /* LANSpeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANSpeedService.swift; sourceTree = "<group>"; };
 		A10000000000000000000027 /* LANSpeedTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANSpeedTestView.swift; sourceTree = "<group>"; };
 		A10000000000000000000028 /* PDFReportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReportService.swift; sourceTree = "<group>"; };
+		A10000000000000000000029 /* VPNComparisonService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNComparisonService.swift; sourceTree = "<group>"; };
+		A10000000000000000000030 /* VPNComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNComparisonView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +124,7 @@
 				A10000000000000000000021 /* GeoIPService.swift */,
 				A10000000000000000000026 /* LANSpeedService.swift */,
 				A10000000000000000000028 /* PDFReportService.swift */,
+				A10000000000000000000029 /* VPNComparisonService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -154,6 +159,7 @@
 				A10000000000000000000022 /* GeoTracerouteView.swift */,
 				A10000000000000000000025 /* HistoryViews.swift */,
 				A10000000000000000000027 /* LANSpeedTestView.swift */,
+				A10000000000000000000030 /* VPNComparisonView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -251,6 +257,8 @@
 				A11111110000000000000026 /* LANSpeedService.swift in Sources */,
 				A11111110000000000000027 /* LANSpeedTestView.swift in Sources */,
 				A11111110000000000000028 /* PDFReportService.swift in Sources */,
+				A11111110000000000000029 /* VPNComparisonService.swift in Sources */,
+				A11111110000000000000030 /* VPNComparisonView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
