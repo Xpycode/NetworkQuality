@@ -32,6 +32,7 @@ class NetworkToolsState: ObservableObject {
 }
 
 struct NetworkToolsView: View {
+    @ObservedObject var historyManager: HistoryManager
     @State private var selectedTool = 0
     @StateObject private var state = NetworkToolsState()
 
@@ -53,11 +54,11 @@ struct NetworkToolsView: View {
             // Tool content
             switch selectedTool {
             case 0:
-                PingToolView(state: state)
+                PingToolView(state: state, historyManager: historyManager)
             case 1:
-                TracerouteToolView(state: state)
+                TracerouteToolView(state: state, historyManager: historyManager)
             case 2:
-                DNSLookupToolView(state: state)
+                DNSLookupToolView(state: state, historyManager: historyManager)
             default:
                 Text("Select a tool")
             }
@@ -111,6 +112,8 @@ struct PopularHostsView: View {
 
 struct PingToolView: View {
     @ObservedObject var state: NetworkToolsState
+    @ObservedObject var historyManager: HistoryManager
+    @State private var currentHost = ""
 
     private var pingService: PingService { state.pingService }
 
@@ -132,7 +135,7 @@ struct PingToolView: View {
 
                 Button(pingService.isRunning ? "Stop" : "Ping") {
                     if pingService.isRunning {
-                        pingService.stop()
+                        saveAndStop()
                     } else {
                         startPing()
                     }
@@ -184,7 +187,15 @@ struct PingToolView: View {
     private func startPing() {
         let trimmed = state.pingHost.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        currentHost = trimmed
         pingService.ping(host: trimmed)
+    }
+
+    private func saveAndStop() {
+        if !pingService.results.isEmpty {
+            historyManager.savePingResult(host: currentHost, results: pingService.results)
+        }
+        pingService.stop()
     }
 }
 
@@ -285,6 +296,8 @@ struct PingResultRow: View {
 
 struct TracerouteToolView: View {
     @ObservedObject var state: NetworkToolsState
+    @ObservedObject var historyManager: HistoryManager
+    @State private var currentHost = ""
 
     private var tracerouteService: TracerouteService { state.tracerouteService }
 
@@ -347,11 +360,18 @@ struct TracerouteToolView: View {
             Spacer(minLength: 0)
         }
         .padding(.top)
+        .onChange(of: tracerouteService.isRunning) { _, isRunning in
+            // Save when traceroute completes
+            if !isRunning && !tracerouteService.hops.isEmpty && !currentHost.isEmpty {
+                historyManager.saveTracerouteResult(host: currentHost, hops: tracerouteService.hops)
+            }
+        }
     }
 
     private func startTraceroute() {
         let trimmed = state.tracerouteHost.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        currentHost = trimmed
         tracerouteService.trace(host: trimmed)
     }
 }
@@ -427,6 +447,9 @@ struct TracerouteHopRow: View {
 
 struct DNSLookupToolView: View {
     @ObservedObject var state: NetworkToolsState
+    @ObservedObject var historyManager: HistoryManager
+    @State private var currentHost = ""
+    @State private var currentRecordType = DNSRecordType.a
 
     private var dnsService: DNSLookupService { state.dnsService }
 
@@ -494,11 +517,19 @@ struct DNSLookupToolView: View {
             Spacer(minLength: 0)
         }
         .padding(.top)
+        .onChange(of: dnsService.isRunning) { _, isRunning in
+            // Save when lookup completes successfully
+            if !isRunning && !dnsService.records.isEmpty && !currentHost.isEmpty {
+                historyManager.saveDNSResult(host: currentHost, recordType: currentRecordType, records: dnsService.records)
+            }
+        }
     }
 
     private func performLookup() {
         let trimmed = state.dnsHost.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        currentHost = trimmed
+        currentRecordType = state.selectedRecordType
         dnsService.lookup(host: trimmed, recordType: state.selectedRecordType)
     }
 }
@@ -549,6 +580,6 @@ struct DNSRecordRow: View {
 }
 
 #Preview {
-    NetworkToolsView()
+    NetworkToolsView(historyManager: HistoryManager())
         .frame(width: 600, height: 500)
 }

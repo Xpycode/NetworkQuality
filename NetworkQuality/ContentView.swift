@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @StateObject private var viewModel = NetworkQualityViewModel()
+    @StateObject private var historyManager = HistoryManager()
     @State private var selectedTab = 0
     @State private var showSettings = false
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
@@ -27,6 +28,13 @@ struct ContentView: View {
                         .tag(5)
                     Label("Route Map", systemImage: "map")
                         .tag(6)
+                }
+
+                Section("History") {
+                    Label("Multi-Server History", systemImage: "clock.arrow.2.circlepath")
+                        .tag(7)
+                    Label("Tools History", systemImage: "doc.text.magnifyingglass")
+                        .tag(8)
                 }
 
                 Section("Options") {
@@ -55,11 +63,15 @@ struct ContentView: View {
                         availableInterfaces: viewModel.availableInterfaces
                     )
                 case 4:
-                    NetworkToolsView()
+                    NetworkToolsView(historyManager: historyManager)
                 case 5:
-                    MultiServerTestView()
+                    MultiServerTestView(historyManager: historyManager)
                 case 6:
                     GeoTracerouteView()
+                case 7:
+                    MultiServerHistoryView(historyManager: historyManager)
+                case 8:
+                    NetworkToolsHistoryView(historyManager: historyManager)
                 default:
                     Text("Select an option")
                 }

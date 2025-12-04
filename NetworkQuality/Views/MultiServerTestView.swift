@@ -21,8 +21,10 @@ class MultiServerTestState: ObservableObject {
 
 struct MultiServerTestView: View {
     @ObservedObject private var state = MultiServerTestState.shared
+    @ObservedObject var historyManager: HistoryManager
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
     @AppStorage("appleSequentialMode") private var appleSequentialMode = false
+    @State private var lastSavedResultCount = 0
 
     private var coordinator: MultiServerTestCoordinator { state.coordinator }
     private var speedUnit: SpeedUnit { SpeedUnit(rawValue: speedUnitRaw) ?? .mbps }
@@ -44,6 +46,13 @@ struct MultiServerTestView: View {
                 Spacer(minLength: 20)
             }
             .padding()
+        }
+        .onChange(of: coordinator.isRunning) { _, isRunning in
+            // Save to history when all tests complete
+            if !isRunning && coordinator.results.count >= 3 && coordinator.results.count != lastSavedResultCount {
+                historyManager.saveMultiServerResult(coordinator.results)
+                lastSavedResultCount = coordinator.results.count
+            }
         }
     }
 
@@ -625,6 +634,6 @@ struct AnalysisView: View {
 }
 
 #Preview {
-    MultiServerTestView()
+    MultiServerTestView(historyManager: HistoryManager())
         .frame(width: 800, height: 700)
 }

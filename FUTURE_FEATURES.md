@@ -61,12 +61,29 @@ Shareable comparison card for multi-server results:
 - Variance analysis (consistent/minor/significant)
 - Copy image, save PNG, or copy text summary
 
+### ✅ Geographic Connection Visualization
+Map view showing where network traffic routes through:
+- Traceroute with GeoIP lookup for each hop
+- Interactive map with route polylines
+- Color-coded markers (start/hops/destination)
+- Popular hosts quick-select
+
+### ✅ Multi-Server History
+Save multi-server comparison results over time:
+- Store all provider results together as a comparison set
+- View historical comparisons to track provider performance
+- Persistent storage with UserDefaults
+
+### ✅ Network Tools History
+Save diagnostic tool results for later review:
+- Store ping sessions with statistics
+- Save traceroute paths for comparison
+- Keep DNS lookup history
+- Filter by tool type
+
 ---
 
 ## High Priority
-
-### Geographic Connection Visualization
-Map view showing where network traffic routes through, inspired by GlassWire.
 
 ### LAN Speed Testing
 Simple local network speed test between Macs without server setup. Highly requested but poorly served by existing apps.
@@ -100,20 +117,8 @@ Run tests with VPN on vs. off and highlight the difference. Helps users detect I
 ### Per-Application Bandwidth Attribution
 Show which apps use bandwidth during tests. Would require additional permissions (Network Extension or similar).
 
-### Multi-Server History
-Save multi-server comparison results over time:
-- Store all provider results together as a comparison set
-- View historical comparisons to track provider performance
-- Identify patterns in routing or throttling over time
-
 ### Network Tools Share Cards
 Generate shareable cards for diagnostic results:
 - Ping summary card with min/avg/max/loss stats
 - Traceroute visualization showing hop path
 - DNS lookup results with record details
-
-### Network Tools History
-Save diagnostic tool results for later review:
-- Store ping sessions with statistics
-- Save traceroute paths for comparison
-- Keep DNS lookup history
