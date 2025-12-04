@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var historyManager = HistoryManager()
     @State private var selectedTab = 0
     @State private var showSettings = false
+    @State private var showExportSheet = false
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
 
     var body: some View {
@@ -103,14 +104,25 @@ struct ContentView: View {
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
-                // Only show main clear button for speed test history (tab 2)
+                // Show clear button for history tab
                 if selectedTab == 2 {
                     Button(action: { viewModel.clearHistory() }) {
                         Label("Clear", systemImage: "trash")
                     }
                     .disabled(viewModel.results.isEmpty)
                 }
+
+                // Show Share button for Results tab
+                if selectedTab == 1 {
+                    Button(action: { showExportSheet = true }) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(viewModel.currentResult == nil)
+                }
             }
+        }
+        .sheet(isPresented: $showExportSheet) {
+            ExportSheet(viewModel: viewModel)
         }
         .alert("Error", isPresented: $viewModel.showError) {
             Button("OK") {
@@ -319,7 +331,7 @@ struct HistoryView: View {
             ExportSheet(viewModel: viewModel)
         }
         .sheet(item: $selectedResult) { result in
-            HistoryDetailSheet(result: result, allResults: results)
+            HistoryDetailSheet(result: result, allResults: results, viewModel: viewModel)
         }
     }
 }
@@ -327,8 +339,10 @@ struct HistoryView: View {
 struct HistoryDetailSheet: View {
     let result: NetworkQualityResult
     var allResults: [NetworkQualityResult] = []
+    @ObservedObject var viewModel: NetworkQualityViewModel
     @Environment(\.dismiss) private var dismiss
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+    @State private var showShareSheet = false
 
     private var speedUnit: SpeedUnit {
         SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
@@ -387,11 +401,9 @@ struct HistoryDetailSheet: View {
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     Button {
-                        Task { @MainActor in
-                            PDFReportService.shared.saveReport(for: result, history: allResults)
-                        }
+                        showShareSheet = true
                     } label: {
-                        Label("Export PDF", systemImage: "doc.richtext")
+                        Label("Share", systemImage: "square.and.arrow.up")
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -399,6 +411,9 @@ struct HistoryDetailSheet: View {
                         dismiss()
                     }
                 }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                ExportSheet(viewModel: viewModel, specificResult: result)
             }
         }
         .frame(minWidth: 500, minHeight: 600)
@@ -639,10 +654,22 @@ enum ShareOption: String, CaseIterable, Identifiable {
 
 struct ExportSheet: View {
     @ObservedObject var viewModel: NetworkQualityViewModel
+    var specificResult: NetworkQualityResult? = nil  // If set, share this specific result
     @Environment(\.dismiss) private var dismiss
     @State private var selectedOption: ShareOption = .image
     @State private var copiedFeedback = false
     @State private var cardImage: NSImage?
+
+    private var currentResult: NetworkQualityResult? {
+        specificResult ?? viewModel.results.last
+    }
+
+    private var resultsForExport: [NetworkQualityResult] {
+        if specificResult != nil {
+            return [specificResult!]
+        }
+        return viewModel.results
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -659,10 +686,17 @@ struct ExportSheet: View {
 
                 Spacer()
 
-                Text("\(viewModel.results.count) results")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 12)
+                if specificResult != nil {
+                    Text("1 test selected")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 12)
+                } else {
+                    Text("\(viewModel.results.count) results")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 12)
+                }
             }
             .padding(.vertical, 16)
             .frame(width: 160)
@@ -750,9 +784,9 @@ struct ExportSheet: View {
         case .pdf:
             pdfPreview
         case .csv:
-            textPreview(content: viewModel.exportResultsCSV())
+            textPreview(content: exportCSV())
         case .json:
-            textPreview(content: viewModel.exportResultsJSON())
+            textPreview(content: exportJSON())
         case .text:
             textPreview(content: textSummary)
         }
@@ -766,7 +800,7 @@ struct ExportSheet: View {
                     .aspectRatio(contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
-            } else if let result = viewModel.results.last {
+            } else if let result = currentResult {
                 ShareableResultCardView(result: result)
                     .scaleEffect(0.6)
             } else {
@@ -796,7 +830,9 @@ struct ExportSheet: View {
                 Label("Quality metrics and ratings", systemImage: "star")
                 Label("Network connection details", systemImage: "wifi")
                 Label("Recommendations and insights", systemImage: "lightbulb")
-                Label("Historical trends (\(viewModel.results.count) tests)", systemImage: "chart.line.uptrend.xyaxis")
+                if resultsForExport.count > 1 {
+                    Label("Historical trends (\(resultsForExport.count) tests)", systemImage: "chart.line.uptrend.xyaxis")
+                }
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
@@ -833,7 +869,7 @@ struct ExportSheet: View {
     }
 
     private var textSummary: String {
-        guard let result = viewModel.results.last else { return "No results available" }
+        guard let result = currentResult else { return "No results available" }
 
         var text = "Network Quality Test Results\n"
         text += "============================\n\n"
@@ -855,7 +891,7 @@ struct ExportSheet: View {
     }
 
     private func generateCardImage() {
-        guard let result = viewModel.results.last else { return }
+        guard let result = currentResult else { return }
         Task { @MainActor in
             let cardView = ShareableResultCardView(result: result)
             let renderer = ImageRenderer(content: cardView)
@@ -876,9 +912,9 @@ struct ExportSheet: View {
                 pasteboard.writeObjects([image])
             }
         case .csv:
-            pasteboard.setString(viewModel.exportResultsCSV(), forType: .string)
+            pasteboard.setString(exportCSV(), forType: .string)
         case .json:
-            pasteboard.setString(viewModel.exportResultsJSON(), forType: .string)
+            pasteboard.setString(exportJSON(), forType: .string)
         case .text:
             pasteboard.setString(textSummary, forType: .string)
         case .pdf:
@@ -891,18 +927,34 @@ struct ExportSheet: View {
         }
     }
 
+    private func exportCSV() -> String {
+        if specificResult != nil, let result = currentResult {
+            // Export single result
+            return viewModel.exportSingleResultCSV(result)
+        }
+        return viewModel.exportResultsCSV()
+    }
+
+    private func exportJSON() -> String {
+        if specificResult != nil, let result = currentResult {
+            // Export single result
+            return viewModel.exportSingleResultJSON(result)
+        }
+        return viewModel.exportResultsJSON()
+    }
+
     private func saveToFile() {
         switch selectedOption {
         case .image:
-            if let result = viewModel.results.last {
+            if let result = currentResult {
                 Task { @MainActor in
                     ShareService.shared.saveResultCard(result: result)
                 }
             }
         case .pdf:
-            if let result = viewModel.results.last {
+            if let result = currentResult {
                 Task { @MainActor in
-                    PDFReportService.shared.saveReport(for: result, history: viewModel.results)
+                    PDFReportService.shared.saveReport(for: result, history: resultsForExport)
                 }
             }
         case .csv, .json, .text:
@@ -913,8 +965,8 @@ struct ExportSheet: View {
             if panel.runModal() == .OK, let url = panel.url {
                 let content: String
                 switch selectedOption {
-                case .csv: content = viewModel.exportResultsCSV()
-                case .json: content = viewModel.exportResultsJSON()
+                case .csv: content = exportCSV()
+                case .json: content = exportJSON()
                 case .text: content = textSummary
                 default: return
                 }

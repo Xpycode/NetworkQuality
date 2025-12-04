@@ -181,6 +181,48 @@ class NetworkQualityViewModel: ObservableObject {
         return value
     }
 
+    func exportSingleResultCSV(_ result: NetworkQualityResult) -> String {
+        var csv = "Timestamp,Download (Mbps),Upload (Mbps),Responsiveness (RPM),Latency (ms),Interface,Connection Type,WiFi SSID,WiFi Band,WiFi Channel,Signal Quality,Signal (dBm),Link Speed (Mbps)\n"
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+
+        var row: [String] = []
+        row.append(dateFormatter.string(from: result.timestamp))
+        row.append(String(format: "%.2f", result.downloadSpeedMbps))
+        row.append(String(format: "%.2f", result.uploadSpeedMbps))
+        row.append(result.responsivenessValue.map { "\($0)" } ?? "")
+        row.append(result.baseRtt.map { String(format: "%.1f", $0) } ?? "")
+        row.append(result.interfaceName ?? "")
+
+        if let metadata = result.networkMetadata {
+            row.append(metadata.connectionType.rawValue)
+            row.append(escapeCSV(metadata.wifiSSID ?? ""))
+            row.append(metadata.wifiBand?.rawValue ?? "")
+            row.append(metadata.wifiChannel.map { "\($0)" } ?? "")
+            row.append(metadata.signalQuality ?? "")
+            row.append(metadata.wifiRSSI.map { "\($0)" } ?? "")
+            row.append(metadata.wifiTxRate.map { String(format: "%.0f", $0) } ?? "")
+        } else {
+            row.append(contentsOf: ["", "", "", "", "", "", ""])
+        }
+
+        csv += row.joined(separator: ",") + "\n"
+        return csv
+    }
+
+    func exportSingleResultJSON(_ result: NetworkQualityResult) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+
+        if let data = try? encoder.encode(result),
+           let json = String(data: data, encoding: .utf8) {
+            return json
+        }
+        return "{}"
+    }
+
     var averageDownloadSpeed: Double {
         guard !results.isEmpty else { return 0 }
         return results.reduce(0.0) { $0 + $1.downloadSpeedMbps } / Double(results.count)
