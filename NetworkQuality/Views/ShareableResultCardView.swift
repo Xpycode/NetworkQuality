@@ -53,9 +53,9 @@ struct ShareableResultCardView: View {
 
     private var headerSection: some View {
         ZStack {
-            // Gradient background
+            // Gradient background - Orange/Amber theme
             LinearGradient(
-                colors: [Color.blue, Color.purple],
+                colors: [Color.orange, Color(red: 0.9, green: 0.4, blue: 0.1)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )

@@ -131,7 +131,7 @@ struct PDFReportView: View {
     private var headerSection: some View {
         ZStack {
             LinearGradient(
-                colors: [Color.blue, Color.purple],
+                colors: [Color.orange, Color(red: 0.9, green: 0.4, blue: 0.1)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )

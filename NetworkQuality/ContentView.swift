@@ -703,7 +703,7 @@ struct ExportSheet: View {
             }
             .padding()
         }
-        .frame(minWidth: 650, minHeight: 450)
+        .frame(width: 700, height: 500)
         .onAppear {
             generateCardImage()
         }
