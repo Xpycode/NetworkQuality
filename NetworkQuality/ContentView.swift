@@ -580,20 +580,59 @@ struct HistoryRow: View {
     }
 }
 
-enum ExportFormat: String, CaseIterable {
-    case csv = "CSV"
-    case json = "JSON"
-    case pdf = "PDF"
+enum ShareOption: String, CaseIterable, Identifiable {
+    case image = "Share Card"
+    case pdf = "PDF Report"
+    case csv = "CSV Data"
+    case json = "JSON Data"
+    case text = "Text Summary"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .image: return "photo"
+        case .pdf: return "doc.richtext"
+        case .csv: return "tablecells"
+        case .json: return "curlybraces"
+        case .text: return "text.alignleft"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .image: return "Visual card for social sharing"
+        case .pdf: return "Branded report with insights"
+        case .csv: return "Spreadsheet-compatible format"
+        case .json: return "Developer-friendly format"
+        case .text: return "Plain text summary"
+        }
+    }
+
+    var canCopy: Bool {
+        switch self {
+        case .image, .csv, .json, .text: return true
+        case .pdf: return false
+        }
+    }
 
     var fileExtension: String {
-        rawValue.lowercased()
+        switch self {
+        case .image: return "png"
+        case .pdf: return "pdf"
+        case .csv: return "csv"
+        case .json: return "json"
+        case .text: return "txt"
+        }
     }
 
     var contentType: UTType {
         switch self {
+        case .image: return .png
+        case .pdf: return .pdf
         case .csv: return .commaSeparatedText
         case .json: return .json
-        case .pdf: return .pdf
+        case .text: return .plainText
         }
     }
 }
@@ -601,100 +640,251 @@ enum ExportFormat: String, CaseIterable {
 struct ExportSheet: View {
     @ObservedObject var viewModel: NetworkQualityViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedFormat: ExportFormat = .csv
+    @State private var selectedOption: ShareOption = .image
     @State private var copiedFeedback = false
-
-    private var exportContent: String {
-        switch selectedFormat {
-        case .csv: return viewModel.exportResultsCSV()
-        case .json: return viewModel.exportResultsJSON()
-        case .pdf: return "PDF report includes speed results, insights, and historical trends.\n\nClick 'Save to File...' to generate the PDF."
-        }
-    }
+    @State private var cardImage: NSImage?
 
     var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Export Results")
+        HStack(spacing: 0) {
+            // Sidebar
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Share & Export")
                     .font(.headline)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
 
-                Spacer()
-
-                Picker("Format", selection: $selectedFormat) {
-                    ForEach(ExportFormat.allCases, id: \.self) { format in
-                        Text(format.rawValue).tag(format)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 180)
-            }
-
-            if selectedFormat == .pdf {
-                // PDF preview
-                VStack(spacing: 16) {
-                    Image(systemName: "doc.richtext.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.blue)
-
-                    Text("PDF Report")
-                        .font(.title2.weight(.semibold))
-
-                    Text("Generate a branded PDF report with:\n- Speed test results\n- Quality metrics and ratings\n- Network connection details\n- Recommendations and insights\n- Historical trends (\(viewModel.results.count) tests)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.secondary.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else {
-                ScrollView {
-                    Text(exportContent)
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .background(Color.secondary.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-
-            HStack {
-                if selectedFormat != .pdf {
-                    Button {
-                        copyToClipboard()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: copiedFeedback ? "checkmark" : "doc.on.doc")
-                            Text(copiedFeedback ? "Copied!" : "Copy to Clipboard")
-                        }
-                    }
-                }
-
-                Button("Save to File...") {
-                    saveToFile()
+                ForEach(ShareOption.allCases) { option in
+                    sidebarButton(option)
                 }
 
                 Spacer()
 
                 Text("\(viewModel.results.count) results")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 12)
+            }
+            .padding(.vertical, 16)
+            .frame(width: 160)
+            .background(Color(NSColor.controlBackgroundColor))
 
-                Button("Done") {
-                    dismiss()
+            Divider()
+
+            // Content area
+            VStack(spacing: 16) {
+                // Preview
+                previewArea
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // Action buttons
+                HStack {
+                    if selectedOption.canCopy {
+                        Button {
+                            copyToClipboard()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: copiedFeedback ? "checkmark" : "doc.on.doc")
+                                Text(copiedFeedback ? "Copied!" : "Copy")
+                            }
+                        }
+                    }
+
+                    Button("Save...") {
+                        saveToFile()
+                    }
+
+                    Spacer()
+
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .keyboardShortcut(.defaultAction)
                 }
-                .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+        }
+        .frame(minWidth: 650, minHeight: 450)
+        .onAppear {
+            generateCardImage()
+        }
+        .onChange(of: selectedOption) { _, _ in
+            if selectedOption == .image {
+                generateCardImage()
             }
         }
-        .padding()
-        .frame(minWidth: 600, minHeight: 450)
+    }
+
+    private func sidebarButton(_ option: ShareOption) -> some View {
+        Button {
+            selectedOption = option
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: option.icon)
+                    .font(.system(size: 14))
+                    .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(option.rawValue)
+                        .font(.system(size: 12, weight: .medium))
+                    Text(option.description)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(selectedOption == option ? Color.accentColor.opacity(0.15) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+    }
+
+    @ViewBuilder
+    private var previewArea: some View {
+        switch selectedOption {
+        case .image:
+            imagePreview
+        case .pdf:
+            pdfPreview
+        case .csv:
+            textPreview(content: viewModel.exportResultsCSV())
+        case .json:
+            textPreview(content: viewModel.exportResultsJSON())
+        case .text:
+            textPreview(content: textSummary)
+        }
+    }
+
+    private var imagePreview: some View {
+        VStack(spacing: 16) {
+            if let image = cardImage {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+            } else if let result = viewModel.results.last {
+                ShareableResultCardView(result: result)
+                    .scaleEffect(0.6)
+            } else {
+                noResultsView
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.secondary.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var pdfPreview: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "doc.richtext.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.blue)
+
+            Text("PDF Report")
+                .font(.title2.weight(.semibold))
+
+            Text("Generate a branded PDF report with:")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Speed test results", systemImage: "gauge.with.dots.needle.bottom.50percent")
+                Label("Quality metrics and ratings", systemImage: "star")
+                Label("Network connection details", systemImage: "wifi")
+                Label("Recommendations and insights", systemImage: "lightbulb")
+                Label("Historical trends (\(viewModel.results.count) tests)", systemImage: "chart.line.uptrend.xyaxis")
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.secondary.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func textPreview(content: String) -> some View {
+        ScrollView {
+            Text(content)
+                .font(.system(.body, design: .monospaced))
+                .textSelection(.enabled)
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color.secondary.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var noResultsView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "network")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+            Text("No Results")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            Text("Run a test first")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    private var textSummary: String {
+        guard let result = viewModel.results.last else { return "No results available" }
+
+        var text = "Network Quality Test Results\n"
+        text += "============================\n\n"
+        text += "Download: \(SpeedUnit.mbps.formatBps(result.dlThroughput))\n"
+        text += "Upload: \(SpeedUnit.mbps.formatBps(result.ulThroughput))\n"
+
+        if let rpm = result.responsivenessValue {
+            text += "Responsiveness: \(rpm) RPM (\(result.responsivenessRating))\n"
+        }
+
+        if let rtt = result.baseRtt {
+            text += "Latency: \(String(format: "%.1f", rtt)) ms\n"
+        }
+
+        text += "\nTested: \(result.timestamp.formatted())\n"
+        text += "Tested with NetworkQuality app"
+
+        return text
+    }
+
+    private func generateCardImage() {
+        guard let result = viewModel.results.last else { return }
+        Task { @MainActor in
+            let cardView = ShareableResultCardView(result: result)
+            let renderer = ImageRenderer(content: cardView)
+            renderer.scale = 2.0
+            if let cgImage = renderer.cgImage {
+                cardImage = NSImage(cgImage: cgImage, size: NSSize(width: 440, height: 520))
+            }
+        }
     }
 
     private func copyToClipboard() {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(exportContent, forType: .string)
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        switch selectedOption {
+        case .image:
+            if let image = cardImage {
+                pasteboard.writeObjects([image])
+            }
+        case .csv:
+            pasteboard.setString(viewModel.exportResultsCSV(), forType: .string)
+        case .json:
+            pasteboard.setString(viewModel.exportResultsJSON(), forType: .string)
+        case .text:
+            pasteboard.setString(textSummary, forType: .string)
+        case .pdf:
+            return
+        }
+
         copiedFeedback = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             copiedFeedback = false
@@ -702,23 +892,34 @@ struct ExportSheet: View {
     }
 
     private func saveToFile() {
-        if selectedFormat == .pdf {
-            savePDF()
-        } else {
+        switch selectedOption {
+        case .image:
+            if let result = viewModel.results.last {
+                Task { @MainActor in
+                    ShareService.shared.saveResultCard(result: result)
+                }
+            }
+        case .pdf:
+            if let result = viewModel.results.last {
+                Task { @MainActor in
+                    PDFReportService.shared.saveReport(for: result, history: viewModel.results)
+                }
+            }
+        case .csv, .json, .text:
             let panel = NSSavePanel()
-            panel.allowedContentTypes = [selectedFormat.contentType]
-            panel.nameFieldStringValue = "network-quality-results.\(selectedFormat.fileExtension)"
+            panel.allowedContentTypes = [selectedOption.contentType]
+            panel.nameFieldStringValue = "network-quality.\(selectedOption.fileExtension)"
 
             if panel.runModal() == .OK, let url = panel.url {
-                try? exportContent.write(to: url, atomically: true, encoding: .utf8)
+                let content: String
+                switch selectedOption {
+                case .csv: content = viewModel.exportResultsCSV()
+                case .json: content = viewModel.exportResultsJSON()
+                case .text: content = textSummary
+                default: return
+                }
+                try? content.write(to: url, atomically: true, encoding: .utf8)
             }
-        }
-    }
-
-    private func savePDF() {
-        guard let latestResult = viewModel.results.last else { return }
-        Task { @MainActor in
-            PDFReportService.shared.saveReport(for: latestResult, history: viewModel.results)
         }
     }
 }
