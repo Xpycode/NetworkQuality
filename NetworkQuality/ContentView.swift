@@ -10,8 +10,8 @@ struct ContentView: View {
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
 
     var body: some View {
-        NavigationSplitView {
-            // Sidebar
+        HStack(spacing: 0) {
+            // Static sidebar
             List(selection: $selectedTab) {
                 Section("Test") {
                     Label("Speed Test", systemImage: "speedometer")
@@ -23,7 +23,7 @@ struct ContentView: View {
                 }
 
                 Section("Tools") {
-                    Label("Network Tools", systemImage: "network")
+                    Label("Diagnostics", systemImage: "network")
                         .tag(4)
                     Label("Multi-Server", systemImage: "server.rack")
                         .tag(5)
@@ -36,22 +36,19 @@ struct ContentView: View {
                 }
 
                 Section("History") {
-                    Label("Multi-Server History", systemImage: "clock.arrow.2.circlepath")
+                    Label("Multi-Server", systemImage: "clock.arrow.2.circlepath")
                         .tag(7)
-                    Label("Tools History", systemImage: "doc.text.magnifyingglass")
+                    Label("Diagnostics", systemImage: "doc.text.magnifyingglass")
                         .tag(8)
-                    Label("LAN Speed History", systemImage: "clock.badge.checkmark")
+                    Label("LAN Speed", systemImage: "clock.badge.checkmark")
                         .tag(10)
-                }
-
-                Section("Options") {
-                    Label("Settings", systemImage: "gear")
-                        .tag(3)
                 }
             }
             .listStyle(.sidebar)
-            .frame(minWidth: 180)
-        } detail: {
+            .frame(width: 200)
+
+            Divider()
+
             // Main content
             Group {
                 switch selectedTab {
@@ -89,7 +86,7 @@ struct ContentView: View {
                     Text("Select an option")
                 }
             }
-            .frame(minWidth: 680, minHeight: 300)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .navigationTitle("Network Quality")
         .toolbar {

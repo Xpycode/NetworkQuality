@@ -147,6 +147,14 @@ struct MultiServerTestView: View {
                     Divider()
 
                     Button {
+                        MultiServerShareService.shared.savePDFReport(results: coordinator.results)
+                    } label: {
+                        Label("Export PDF Report", systemImage: "doc.richtext")
+                    }
+
+                    Divider()
+
+                    Button {
                         let text = MultiServerShareService.shared.textSummary(results: coordinator.results, speedUnit: speedUnit)
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(text, forType: .string)

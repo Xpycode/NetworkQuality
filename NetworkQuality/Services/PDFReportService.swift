@@ -48,8 +48,16 @@ class PDFReportService {
     }
 
     private func renderViewToPDF<V: View>(_ view: V, pageSize: CGSize) -> Data? {
-        let renderer = ImageRenderer(content: view.frame(width: pageSize.width, height: pageSize.height))
+        // Render the view without height constraint to get natural size
+        let contentView = view.frame(width: pageSize.width).fixedSize(horizontal: false, vertical: true)
+        let renderer = ImageRenderer(content: contentView)
         renderer.scale = 2.0
+
+        guard let cgImage = renderer.cgImage else { return nil }
+
+        // Calculate actual content height from rendered image
+        let contentHeight = CGFloat(cgImage.height) / renderer.scale
+        let contentWidth = CGFloat(cgImage.width) / renderer.scale
 
         let pdfData = NSMutableData()
 
@@ -58,12 +66,14 @@ class PDFReportService {
             return nil
         }
 
-        let mediaBox = CGRect(origin: .zero, size: pageSize)
+        // Use actual content height for single-page PDF (with reasonable max)
+        let actualPageHeight = min(contentHeight, 2000) // Cap at reasonable max
+        let mediaBox = CGRect(origin: .zero, size: CGSize(width: pageSize.width, height: actualPageHeight))
         context.beginPDFPage([kCGPDFContextMediaBox as String: mediaBox] as CFDictionary)
 
-        if let cgImage = renderer.cgImage {
-            context.draw(cgImage, in: mediaBox)
-        }
+        // Draw image scaled to fit the page
+        let drawRect = CGRect(origin: .zero, size: CGSize(width: contentWidth, height: contentHeight))
+        context.draw(cgImage, in: drawRect)
 
         context.endPDFPage()
         context.closePDF()

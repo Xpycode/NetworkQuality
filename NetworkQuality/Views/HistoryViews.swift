@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 // MARK: - Multi-Server History View
 
@@ -165,6 +166,8 @@ struct MultiServerHistoryDetailSheet: View {
     let entry: MultiServerHistoryEntry
     @Environment(\.dismiss) private var dismiss
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+    @State private var copyImageFeedback = false
+    @State private var copyTextFeedback = false
 
     private var speedUnit: SpeedUnit {
         SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
@@ -176,6 +179,7 @@ struct MultiServerHistoryDetailSheet: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Header
                     HStack {
+                        // Left: Date/time
                         VStack(alignment: .leading, spacing: 4) {
                             Text(entry.timestamp, style: .date)
                                 .font(.title2.weight(.semibold))
@@ -186,18 +190,60 @@ struct MultiServerHistoryDetailSheet: View {
 
                         Spacer()
 
+                        // Center: Fastest provider
                         if let fastest = entry.fastestDownload {
-                            VStack(alignment: .trailing, spacing: 2) {
+                            VStack(spacing: 2) {
                                 HStack(spacing: 4) {
                                     Image(systemName: "trophy")
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(.orange)
                                     Text("Fastest")
                                         .font(.caption)
+                                        .foregroundStyle(.secondary)
                                 }
                                 Text(fastest.provider)
                                     .font(.headline)
                             }
                         }
+
+                        Spacer()
+
+                        // Right: Share menu
+                        Menu {
+                            Button {
+                                copyImageFeedback = MultiServerShareService.shared.copyToClipboard(results: entry.results)
+                            } label: {
+                                Label("Copy Image", systemImage: "doc.on.doc")
+                            }
+
+                            Button {
+                                MultiServerShareService.shared.saveCard(results: entry.results)
+                            } label: {
+                                Label("Save Image", systemImage: "square.and.arrow.down")
+                            }
+
+                            Divider()
+
+                            Button {
+                                MultiServerShareService.shared.savePDFReport(results: entry.results, timestamp: entry.timestamp)
+                            } label: {
+                                Label("Export PDF Report", systemImage: "doc.richtext")
+                            }
+
+                            Divider()
+
+                            Button {
+                                let text = MultiServerShareService.shared.textSummary(results: entry.results, speedUnit: speedUnit)
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(text, forType: .string)
+                                copyTextFeedback = true
+                            } label: {
+                                Label("Copy Text Summary", systemImage: "doc.plaintext")
+                            }
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.title2)
+                        }
+                        .menuStyle(.borderlessButton)
                     }
                     .padding()
                     .background(Color.secondary.opacity(0.05))
