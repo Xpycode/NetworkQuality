@@ -110,9 +110,9 @@ struct MultiServerShareCardView: View {
                 Text(result.provider)
                     .font(.system(size: 13, weight: isFastest ? .bold : .regular))
                 if isFastest {
-                    Image(systemName: "crown.fill")
+                    Image(systemName: "trophy")
                         .font(.system(size: 10))
-                        .foregroundColor(.yellow)
+                        .foregroundColor(.orange)
                 }
             }
             .frame(width: 100, alignment: .leading)
@@ -148,8 +148,8 @@ struct MultiServerShareCardView: View {
         VStack(spacing: 12) {
             if let fastest = fastestProvider {
                 HStack(spacing: 8) {
-                    Image(systemName: "trophy.fill")
-                        .foregroundColor(.yellow)
+                    Image(systemName: "trophy")
+                        .foregroundColor(.orange)
                     Text("Fastest: \(fastest.provider)")
                         .font(.system(size: 15, weight: .semibold))
                     Text("@ \(formatSpeed(fastest.downloadSpeed))")

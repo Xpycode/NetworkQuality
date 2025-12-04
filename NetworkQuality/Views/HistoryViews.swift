@@ -100,9 +100,9 @@ struct MultiServerHistoryRow: View {
             // Winner badge
             if let fastest = entry.fastestDownload {
                 HStack(spacing: 4) {
-                    Image(systemName: "crown.fill")
+                    Image(systemName: "trophy")
                         .font(.caption2)
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(.secondary)
                     Text(fastest.provider)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -154,8 +154,8 @@ struct MultiServerHistoryDetailSheet: View {
                         if let fastest = entry.fastestDownload {
                             VStack(alignment: .trailing, spacing: 2) {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "crown.fill")
-                                        .foregroundStyle(.yellow)
+                                    Image(systemName: "trophy")
+                                        .foregroundStyle(.secondary)
                                     Text("Fastest")
                                         .font(.caption)
                                 }
@@ -229,9 +229,9 @@ struct ProviderResultRow: View {
                     .font(.subheadline.weight(.medium))
 
                 if isFastest {
-                    Image(systemName: "crown.fill")
+                    Image(systemName: "trophy")
                         .font(.caption)
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(.orange)
                 }
             }
             .frame(width: 120, alignment: .leading)
@@ -286,7 +286,7 @@ struct ProviderResultRow: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .background(isFastest ? Color.yellow.opacity(0.1) : Color.secondary.opacity(0.05))
+        .background(isFastest ? Color.orange.opacity(0.1) : Color.secondary.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
