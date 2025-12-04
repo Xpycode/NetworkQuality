@@ -5,7 +5,6 @@ struct ResultsView: View {
     let verboseOutput: [String]
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
     @State private var selectedTab = 0
-    @State private var showCopiedFeedback = false
 
     private var speedUnit: SpeedUnit {
         SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
@@ -69,13 +68,6 @@ struct ResultsView: View {
                 }
             }
             .padding()
-        }
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                if let result = result {
-                    ShareMenuButton(result: result, showCopiedFeedback: $showCopiedFeedback)
-                }
-            }
         }
     }
 
@@ -382,103 +374,6 @@ struct VerboseOutputSection: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .padding(.top, 8)
             }
-        }
-    }
-}
-
-// MARK: - Share Menu Button
-
-struct ShareMenuButton: View {
-    let result: NetworkQualityResult
-    @Binding var showCopiedFeedback: Bool
-
-    var body: some View {
-        Menu {
-            Button {
-                copyToClipboard()
-            } label: {
-                Label("Copy Image", systemImage: "doc.on.doc")
-            }
-
-            Button {
-                saveToFile()
-            } label: {
-                Label("Save Image...", systemImage: "square.and.arrow.down")
-            }
-
-            Divider()
-
-            Button {
-                savePDF()
-            } label: {
-                Label("Save PDF Report...", systemImage: "doc.richtext")
-            }
-
-            Divider()
-
-            ShareLink(item: shareText) {
-                Label("Share Text...", systemImage: "text.bubble")
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: showCopiedFeedback ? "checkmark" : "square.and.arrow.up")
-                Text(showCopiedFeedback ? "Copied!" : "Share")
-            }
-            .font(.system(size: 12, weight: .medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color.accentColor.opacity(0.1))
-            .foregroundColor(.accentColor)
-            .clipShape(Capsule())
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-    }
-
-    private var shareText: String {
-        var text = "Network Quality Test Results:\n"
-        text += "📥 Download: \(SpeedUnit.mbps.formatBps(result.dlThroughput))\n"
-        text += "📤 Upload: \(SpeedUnit.mbps.formatBps(result.ulThroughput))\n"
-
-        if let rpm = result.responsivenessValue {
-            text += "⚡ Responsiveness: \(rpm) RPM (\(result.responsivenessRating))\n"
-        }
-
-        if let rtt = result.baseRtt {
-            text += "🏓 Latency: \(String(format: "%.1f", rtt)) ms\n"
-        }
-
-        if let metadata = result.networkMetadata {
-            text += "🌐 Connection: \(metadata.connectionType.rawValue)"
-            if let ssid = metadata.wifiSSID, !ssid.isEmpty {
-                text += " (\(ssid))"
-            }
-            text += "\n"
-        }
-
-        return text
-    }
-
-    private func copyToClipboard() {
-        Task { @MainActor in
-            if ShareService.shared.copyResultCardToClipboard(result: result) {
-                showCopiedFeedback = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    showCopiedFeedback = false
-                }
-            }
-        }
-    }
-
-    private func saveToFile() {
-        Task { @MainActor in
-            ShareService.shared.saveResultCard(result: result)
-        }
-    }
-
-    private func savePDF() {
-        Task { @MainActor in
-            PDFReportService.shared.saveReport(for: result)
         }
     }
 }
