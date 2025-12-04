@@ -102,40 +102,42 @@ struct MultiServerHistoryRow: View {
     }
 
     private func providerColumn(result: StoredSpeedTestResult, isFastest: Bool) -> some View {
-        VStack(spacing: 2) {
+        HStack(spacing: 6) {
             // Provider icon
             Image(systemName: iconForProvider(result.provider))
-                .font(.system(size: 10))
+                .font(.system(size: 12))
                 .foregroundStyle(result.isSuccess ? .primary : .secondary)
+                .frame(width: 14)
 
             if result.isSuccess {
-                // Download
-                let dl = speedUnit.format(result.downloadSpeed)
-                HStack(spacing: 2) {
-                    Image(systemName: "arrow.down")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.blue)
-                    Text(dl.value)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.blue)
+                // Download and Upload stacked
+                VStack(alignment: .leading, spacing: 1) {
+                    let dl = speedUnit.format(result.downloadSpeed)
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.blue)
+                        Text(dl.value)
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.blue)
+                    }
+
+                    let ul = speedUnit.format(result.uploadSpeed)
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.green)
+                        Text(ul.value)
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.green)
+                    }
                 }
 
                 // Latency
                 if let latency = result.latency {
                     Text(String(format: "%.0fms", latency))
-                        .font(.system(size: 9, design: .rounded))
+                        .font(.system(size: 10, design: .rounded))
                         .foregroundStyle(.secondary)
-                }
-
-                // Upload
-                let ul = speedUnit.format(result.uploadSpeed)
-                HStack(spacing: 2) {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 8))
-                        .foregroundStyle(.green)
-                    Text(ul.value)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.green)
                 }
             } else {
                 Image(systemName: "xmark")
@@ -143,9 +145,8 @@ struct MultiServerHistoryRow: View {
                     .foregroundStyle(.red)
             }
         }
-        .frame(width: 55)
         .padding(.vertical, 4)
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 6)
         .background(isFastest ? Color.orange.opacity(0.1) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
