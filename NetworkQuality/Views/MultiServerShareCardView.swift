@@ -103,9 +103,10 @@ struct MultiServerShareCardView: View {
         return HStack {
             // Provider name with icon
             HStack(spacing: 6) {
-                Circle()
-                    .fill(providerColor(result.provider))
-                    .frame(width: 8, height: 8)
+                Image(systemName: providerIcon(result.provider))
+                    .font(.system(size: 12))
+                    .foregroundStyle(providerColor(result.provider))
+                    .frame(width: 14)
                 Text(result.provider)
                     .font(.system(size: 13, weight: isFastest ? .bold : .regular))
                 if isFastest {
@@ -114,7 +115,7 @@ struct MultiServerShareCardView: View {
                         .foregroundColor(.yellow)
                 }
             }
-            .frame(width: 90, alignment: .leading)
+            .frame(width: 100, alignment: .leading)
 
             // Download speed
             Text(result.isSuccess ? formatSpeed(result.downloadSpeed) : "-")
@@ -209,6 +210,15 @@ struct MultiServerShareCardView: View {
 
     private var fastestDownload: Double {
         fastestProvider?.downloadSpeed ?? 0
+    }
+
+    private func providerIcon(_ name: String) -> String {
+        switch name {
+        case "Apple": return "apple.logo"
+        case "Cloudflare": return "cloud.fill"
+        case "M-Lab": return "globe.americas.fill"
+        default: return "server.rack"
+        }
     }
 
     private func providerColor(_ name: String) -> Color {

@@ -527,9 +527,10 @@ struct ComparisonTable: View {
             ForEach(results) { result in
                 HStack {
                     HStack(spacing: 6) {
-                        Circle()
-                            .fill(providerColor(result.provider))
-                            .frame(width: 8, height: 8)
+                        Image(systemName: providerIcon(result.provider))
+                            .font(.system(size: 10))
+                            .foregroundStyle(providerColor(result.provider))
+                            .frame(width: 12)
                         Text(result.provider)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -566,6 +567,15 @@ struct ComparisonTable: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
         )
+    }
+
+    private func providerIcon(_ name: String) -> String {
+        switch name {
+        case "Apple": return "apple.logo"
+        case "Cloudflare": return "cloud.fill"
+        case "M-Lab": return "globe.americas.fill"
+        default: return "server.rack"
+        }
     }
 
     private func providerColor(_ name: String) -> Color {
