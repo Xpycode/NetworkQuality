@@ -315,13 +315,14 @@ struct HistoryView: View {
             ExportSheet(viewModel: viewModel)
         }
         .sheet(item: $selectedResult) { result in
-            HistoryDetailSheet(result: result)
+            HistoryDetailSheet(result: result, allResults: results)
         }
     }
 }
 
 struct HistoryDetailSheet: View {
     let result: NetworkQualityResult
+    var allResults: [NetworkQualityResult] = []
     @Environment(\.dismiss) private var dismiss
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
 
@@ -380,6 +381,15 @@ struct HistoryDetailSheet: View {
             }
             .navigationTitle("Test Details")
             .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Button {
+                        Task { @MainActor in
+                            PDFReportService.shared.saveReport(for: result, history: allResults)
+                        }
+                    } label: {
+                        Label("Export PDF", systemImage: "doc.richtext")
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         dismiss()
@@ -569,6 +579,7 @@ struct HistoryRow: View {
 enum ExportFormat: String, CaseIterable {
     case csv = "CSV"
     case json = "JSON"
+    case pdf = "PDF"
 
     var fileExtension: String {
         rawValue.lowercased()
@@ -578,6 +589,7 @@ enum ExportFormat: String, CaseIterable {
         switch self {
         case .csv: return .commaSeparatedText
         case .json: return .json
+        case .pdf: return .pdf
         }
     }
 }
@@ -592,6 +604,7 @@ struct ExportSheet: View {
         switch selectedFormat {
         case .csv: return viewModel.exportResultsCSV()
         case .json: return viewModel.exportResultsJSON()
+        case .pdf: return "PDF report includes speed results, insights, and historical trends.\n\nClick 'Save to File...' to generate the PDF."
         }
     }
 
@@ -610,26 +623,48 @@ struct ExportSheet: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .frame(width: 140)
+                .frame(width: 180)
             }
 
-            ScrollView {
-                Text(exportContent)
-                    .font(.system(.body, design: .monospaced))
-                    .textSelection(.enabled)
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if selectedFormat == .pdf {
+                // PDF preview
+                VStack(spacing: 16) {
+                    Image(systemName: "doc.richtext.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.blue)
+
+                    Text("PDF Report")
+                        .font(.title2.weight(.semibold))
+
+                    Text("Generate a branded PDF report with:\n- Speed test results\n- Quality metrics and ratings\n- Network connection details\n- Recommendations and insights\n- Historical trends (\(viewModel.results.count) tests)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.secondary.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                ScrollView {
+                    Text(exportContent)
+                        .font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .background(Color.secondary.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .background(Color.secondary.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
 
             HStack {
-                Button {
-                    copyToClipboard()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: copiedFeedback ? "checkmark" : "doc.on.doc")
-                        Text(copiedFeedback ? "Copied!" : "Copy to Clipboard")
+                if selectedFormat != .pdf {
+                    Button {
+                        copyToClipboard()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: copiedFeedback ? "checkmark" : "doc.on.doc")
+                            Text(copiedFeedback ? "Copied!" : "Copy to Clipboard")
+                        }
                     }
                 }
 
@@ -663,12 +698,23 @@ struct ExportSheet: View {
     }
 
     private func saveToFile() {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [selectedFormat.contentType]
-        panel.nameFieldStringValue = "network-quality-results.\(selectedFormat.fileExtension)"
+        if selectedFormat == .pdf {
+            savePDF()
+        } else {
+            let panel = NSSavePanel()
+            panel.allowedContentTypes = [selectedFormat.contentType]
+            panel.nameFieldStringValue = "network-quality-results.\(selectedFormat.fileExtension)"
 
-        if panel.runModal() == .OK, let url = panel.url {
-            try? exportContent.write(to: url, atomically: true, encoding: .utf8)
+            if panel.runModal() == .OK, let url = panel.url {
+                try? exportContent.write(to: url, atomically: true, encoding: .utf8)
+            }
+        }
+    }
+
+    private func savePDF() {
+        guard let latestResult = viewModel.results.last else { return }
+        Task { @MainActor in
+            PDFReportService.shared.saveReport(for: latestResult, history: viewModel.results)
         }
     }
 }
