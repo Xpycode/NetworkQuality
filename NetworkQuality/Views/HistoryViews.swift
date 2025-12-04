@@ -73,25 +73,10 @@ struct MultiServerHistoryRow: View {
 
             Divider()
 
-            // Provider results summary
-            HStack(spacing: 12) {
+            // Provider results with download/latency/upload
+            HStack(spacing: 16) {
                 ForEach(entry.results) { result in
-                    HStack(spacing: 4) {
-                        Image(systemName: iconForProvider(result.provider))
-                            .font(.caption)
-                            .foregroundStyle(result.isSuccess ? .primary : .secondary)
-
-                        if result.isSuccess {
-                            let formatted = speedUnit.format(result.downloadSpeed)
-                            Text(formatted.value)
-                                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                .foregroundStyle(.blue)
-                        } else {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.red)
-                        }
-                    }
+                    providerColumn(result: result, isFastest: entry.fastestDownload?.id == result.id)
                 }
             }
 
@@ -99,12 +84,12 @@ struct MultiServerHistoryRow: View {
 
             // Winner badge
             if let fastest = entry.fastestDownload {
-                HStack(spacing: 4) {
+                VStack(alignment: .trailing, spacing: 2) {
                     Image(systemName: "trophy")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(fastest.provider)
                         .font(.caption)
+                        .foregroundStyle(.orange)
+                    Text(fastest.provider)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -113,7 +98,56 @@ struct MultiServerHistoryRow: View {
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
+        .padding(.vertical, 6)
+    }
+
+    private func providerColumn(result: StoredSpeedTestResult, isFastest: Bool) -> some View {
+        VStack(spacing: 2) {
+            // Provider icon
+            Image(systemName: iconForProvider(result.provider))
+                .font(.system(size: 10))
+                .foregroundStyle(result.isSuccess ? .primary : .secondary)
+
+            if result.isSuccess {
+                // Download
+                let dl = speedUnit.format(result.downloadSpeed)
+                HStack(spacing: 2) {
+                    Image(systemName: "arrow.down")
+                        .font(.system(size: 8))
+                        .foregroundStyle(.blue)
+                    Text(dl.value)
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.blue)
+                }
+
+                // Latency
+                if let latency = result.latency {
+                    Text(String(format: "%.0fms", latency))
+                        .font(.system(size: 9, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+
+                // Upload
+                let ul = speedUnit.format(result.uploadSpeed)
+                HStack(spacing: 2) {
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 8))
+                        .foregroundStyle(.green)
+                    Text(ul.value)
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.green)
+                }
+            } else {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.red)
+            }
+        }
+        .frame(width: 55)
         .padding(.vertical, 4)
+        .padding(.horizontal, 4)
+        .background(isFastest ? Color.orange.opacity(0.1) : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
     private func iconForProvider(_ provider: String) -> String {
