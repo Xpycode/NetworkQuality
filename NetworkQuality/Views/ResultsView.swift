@@ -45,17 +45,27 @@ struct ResultsView: View {
                         ConnectionInfoSection(result: result)
                     }
 
+                    // Verbose output (only show with results)
+                    if !verboseOutput.isEmpty {
+                        VerboseOutputSection(output: verboseOutput)
+                    }
                 } else {
-                    ContentUnavailableView(
-                        "No Results Yet",
-                        systemImage: "network",
-                        description: Text("Run a test to see results")
-                    )
-                }
+                    // No results - centered empty state
+                    VStack {
+                        Spacer()
+                        ContentUnavailableView(
+                            "No Results Yet",
+                            systemImage: "network",
+                            description: Text("Run a test to see results")
+                        )
 
-                // Verbose output
-                if !verboseOutput.isEmpty {
-                    VerboseOutputSection(output: verboseOutput)
+                        // Verbose output below empty state
+                        if !verboseOutput.isEmpty {
+                            VerboseOutputSection(output: verboseOutput)
+                        }
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
             .padding()
@@ -398,6 +408,14 @@ struct ShareMenuButton: View {
 
             Divider()
 
+            Button {
+                savePDF()
+            } label: {
+                Label("Save PDF Report...", systemImage: "doc.richtext")
+            }
+
+            Divider()
+
             ShareLink(item: shareText) {
                 Label("Share Text...", systemImage: "text.bubble")
             }
@@ -455,6 +473,12 @@ struct ShareMenuButton: View {
     private func saveToFile() {
         Task { @MainActor in
             ShareService.shared.saveResultCard(result: result)
+        }
+    }
+
+    private func savePDF() {
+        Task { @MainActor in
+            PDFReportService.shared.saveReport(for: result)
         }
     }
 }
