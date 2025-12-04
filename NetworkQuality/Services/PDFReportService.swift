@@ -95,20 +95,28 @@ struct PDFReportView: View {
             headerSection
 
             // Main content
-            VStack(spacing: 16) {
+            VStack(spacing: 14) {
+                // Overall Summary
+                overallSummarySection
+
                 // Speed results
                 speedResultsSection
 
                 // Quality metrics
                 qualityMetricsSection
 
+                // Bufferbloat visualization
+                if let idleLatency = result.baseRtt, let rpm = result.responsivenessValue {
+                    bufferbloatSection(idleLatency: idleLatency, rpm: rpm)
+                }
+
                 // Network info
                 if let metadata = result.networkMetadata {
                     networkInfoSection(metadata)
                 }
 
-                // Insights
-                insightsSection
+                // What can you do section
+                capabilitiesSection
 
                 // Historical trends (if multiple results)
                 if allResults.count > 1 {
@@ -120,7 +128,7 @@ struct PDFReportView: View {
                 // Footer
                 footerSection
             }
-            .padding(24)
+            .padding(20)
             .background(Color.white)
         }
         .background(Color.white)
@@ -167,6 +175,93 @@ struct PDFReportView: View {
             .padding(.vertical, 16)
         }
         .frame(height: 80)
+    }
+
+    // MARK: - Overall Summary
+
+    private var overallSummarySection: some View {
+        let summary = NetworkInsights.overallSummary(
+            downloadMbps: result.downloadSpeedMbps,
+            uploadMbps: result.uploadSpeedMbps,
+            rpm: result.responsivenessValue,
+            mode: .practical
+        )
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: summaryIcon(for: summary.overallRating))
+                    .font(.system(size: 20))
+                    .foregroundColor(summary.overallRating.color)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(summary.overallRating.label)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(summary.overallRating.color)
+                    Text(summary.headline)
+                        .font(.system(size: 12, weight: .medium))
+                }
+
+                Spacer()
+            }
+
+            Divider()
+
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "speedometer")
+                            .font(.system(size: 10))
+                        Text("Speed")
+                            .font(.system(size: 10))
+                    }
+                    .foregroundColor(.secondary)
+                    Text(summary.speedSummary)
+                        .font(.system(size: 11))
+                }
+
+                Divider()
+                    .frame(height: 30)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "waveform.path.ecg")
+                            .font(.system(size: 10))
+                        Text("Responsiveness")
+                            .font(.system(size: 10))
+                    }
+                    .foregroundColor(.secondary)
+                    Text(summary.responsivenessSummary)
+                        .font(.system(size: 11))
+                }
+            }
+
+            if let recommendation = summary.topRecommendation {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.yellow)
+                    Text(recommendation)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.yellow.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+        }
+        .padding(12)
+        .background(summary.overallRating.color.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func summaryIcon(for rating: NetworkInsights.OverallRating) -> String {
+        switch rating {
+        case .poor: return "exclamationmark.triangle.fill"
+        case .fair: return "minus.circle.fill"
+        case .good: return "checkmark.circle.fill"
+        case .excellent: return "star.circle.fill"
+        }
     }
 
     // MARK: - Speed Results
@@ -352,6 +447,162 @@ struct PDFReportView: View {
         .padding(16)
         .background(Color(white: 0.97))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - Bufferbloat
+
+    private func bufferbloatSection(idleLatency: Double, rpm: Int) -> some View {
+        let loadedLatency = 60000.0 / Double(rpm)
+        let bufferbloatMs = max(0, loadedLatency - idleLatency)
+        let multiplier = idleLatency > 0 ? loadedLatency / idleLatency : 1
+
+        let severity: (label: String, color: Color, explanation: String) = {
+            switch multiplier {
+            case ..<1.5: return ("Minimal", .green, "Your network maintains low latency even under load.")
+            case 1.5..<3: return ("Moderate", .blue, "Some latency increase under load, but acceptable.")
+            case 3..<6: return ("Significant", .orange, "Noticeable delay when network is busy.")
+            default: return ("Severe", .red, "High latency under load. Consider enabling SQM.")
+            }
+        }()
+
+        let maxLatency = max(loadedLatency, idleLatency)
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "waveform.path.ecg")
+                    .foregroundColor(severity.color)
+                Text("Bufferbloat")
+                    .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Text(severity.label)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(severity.color)
+            }
+
+            // Latency bars
+            VStack(alignment: .leading, spacing: 6) {
+                // Idle bar
+                HStack(spacing: 8) {
+                    Text("Idle")
+                        .font(.system(size: 10))
+                        .frame(width: 45, alignment: .leading)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.gray.opacity(0.2))
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.green)
+                                .frame(width: geo.size.width * CGFloat(idleLatency / maxLatency))
+                        }
+                    }
+                    .frame(height: 16)
+                    Text(String(format: "%.0f ms", idleLatency))
+                        .font(.system(size: 10, weight: .medium))
+                        .frame(width: 50, alignment: .trailing)
+                }
+
+                // Loaded bar
+                HStack(spacing: 8) {
+                    Text("Loaded")
+                        .font(.system(size: 10))
+                        .frame(width: 45, alignment: .leading)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.gray.opacity(0.2))
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(severity.color)
+                                .frame(width: geo.size.width * CGFloat(loadedLatency / maxLatency))
+                        }
+                    }
+                    .frame(height: 16)
+                    Text(String(format: "%.0f ms", loadedLatency))
+                        .font(.system(size: 10, weight: .medium))
+                        .frame(width: 50, alignment: .trailing)
+                }
+            }
+
+            HStack {
+                Text("Latency increase under load: ")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                Text("+\(Int(bufferbloatMs)) ms")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(severity.color)
+                Text("(\(String(format: "%.1f", multiplier))× slower)")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+
+            Text(severity.explanation)
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
+        }
+        .padding(12)
+        .background(Color(white: 0.97))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    // MARK: - Capabilities
+
+    private var capabilitiesSection: some View {
+        let speedInsight = NetworkInsights.speedInsight(
+            downloadMbps: result.downloadSpeedMbps,
+            uploadMbps: result.uploadSpeedMbps
+        )
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("What can you do with this connection?")
+                .font(.system(size: 13, weight: .semibold))
+
+            Text(speedInsight.headline)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+
+            // Use a simpler grid without ForEach
+            VStack(spacing: 6) {
+                HStack(spacing: 6) {
+                    capabilityItem(speedInsight.capabilities, index: 0)
+                    capabilityItem(speedInsight.capabilities, index: 1)
+                    capabilityItem(speedInsight.capabilities, index: 2)
+                }
+                HStack(spacing: 6) {
+                    capabilityItem(speedInsight.capabilities, index: 3)
+                    capabilityItem(speedInsight.capabilities, index: 4)
+                    capabilityItem(speedInsight.capabilities, index: 5)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(white: 0.97))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    @ViewBuilder
+    private func capabilityItem(_ capabilities: [NetworkInsights.ActivityCapability], index: Int) -> some View {
+        if index < capabilities.count {
+            let capability = capabilities[index]
+            HStack(spacing: 4) {
+                Image(systemName: capability.icon)
+                    .font(.system(size: 10))
+                    .foregroundColor(capability.supported ? .green : .red)
+                    .frame(width: 14)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(capability.activity)
+                        .font(.system(size: 9, weight: .medium))
+                    Text(capability.detail)
+                        .font(.system(size: 8))
+                        .foregroundColor(capability.supported ? .green : .orange)
+                }
+                Spacer()
+            }
+            .padding(6)
+            .frame(maxWidth: .infinity)
+            .background(Color(white: 0.95))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        } else {
+            Color.clear.frame(maxWidth: .infinity)
+        }
     }
 
     // MARK: - Insights
