@@ -239,19 +239,22 @@ struct ProviderCard: View {
                     .font(.headline)
             }
 
-            // Mode indicator
-            if let binding = sequentialMode {
-                Picker("", selection: binding) {
-                    Text("Parallel").tag(false)
-                    Text("Sequential").tag(true)
+            // Mode indicator - fixed height for consistent card sizing
+            Group {
+                if let binding = sequentialMode {
+                    Picker("", selection: binding) {
+                        Text("Parallel").tag(false)
+                        Text("Sequential").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .controlSize(.small)
+                } else if isSequentialOnly {
+                    Text("Sequential only")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
-                .pickerStyle(.segmented)
-                .controlSize(.small)
-            } else if isSequentialOnly {
-                Text("Sequential only")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
             }
+            .frame(height: 24)
 
             Divider()
 
@@ -264,6 +267,8 @@ struct ProviderCard: View {
                 idleView
             }
 
+            Spacer(minLength: 0)
+
             // Test button
             Button(action: onTest) {
                 Text(result != nil ? "Retest" : "Test")
@@ -274,7 +279,7 @@ struct ProviderCard: View {
             .disabled(isCurrentlyTesting)
         }
         .padding()
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, minHeight: 220, alignment: .top)
         .background(Color.secondary.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
