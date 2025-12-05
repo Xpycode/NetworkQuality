@@ -1,5 +1,8 @@
 import SwiftUI
 import AppKit
+import os.log
+
+private let shareLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "NetworkQuality", category: "Share")
 
 /// A visually appealing result card designed for social sharing
 struct ShareableResultCardView: View {
@@ -341,7 +344,7 @@ class ShareService {
         let cardView = ShareableResultCardView(result: result)
 
         guard let image = cardView.renderAsImage() else {
-            print("Failed to render result card image")
+            shareLogger.error("Failed to render result card image for sharing")
             return
         }
 
@@ -354,7 +357,7 @@ class ShareService {
         let cardView = ShareableResultCardView(result: result)
 
         guard let image = cardView.renderAsImage() else {
-            print("Failed to render result card image")
+            shareLogger.error("Failed to render result card image for saving")
             return
         }
 
@@ -389,14 +392,14 @@ class ShareService {
         guard let tiffData = image.tiffRepresentation,
               let bitmapRep = NSBitmapImageRep(data: tiffData),
               let pngData = bitmapRep.representation(using: .png, properties: [:]) else {
-            print("Failed to convert image to PNG")
+            shareLogger.error("Failed to convert image to PNG format")
             return
         }
 
         do {
             try pngData.write(to: url)
         } catch {
-            print("Failed to save image: \(error)")
+            shareLogger.error("Failed to save image: \(error.localizedDescription)")
         }
     }
 

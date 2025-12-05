@@ -1,6 +1,11 @@
 import Foundation
 import Network
 import Combine
+import os.log
+
+// MARK: - LAN Speed Service Logger
+
+private let lanLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "NetworkQuality", category: "LANSpeed")
 
 // MARK: - LAN Device
 
@@ -294,7 +299,7 @@ class LANSpeedService: ObservableObject {
         browser?.stateUpdateHandler = { [weak self] state in
             Task { @MainActor in
                 if case .failed(let error) = state {
-                    print("Browser failed: \(error)")
+                    lanLogger.error("Browser failed: \(error.localizedDescription)")
                     self?.stopDiscovery()
                 }
             }

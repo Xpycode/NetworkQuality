@@ -132,7 +132,7 @@ class NetworkQualityViewModel: ObservableObject {
             var row: [String] = []
 
             // Timestamp
-            row.append(dateFormatter.string(from: result.timestamp))
+            row.append(escapeCSV(dateFormatter.string(from: result.timestamp)))
 
             // Speeds
             row.append(String(format: "%.2f", result.downloadSpeedMbps))
@@ -152,16 +152,16 @@ class NetworkQualityViewModel: ObservableObject {
                 row.append("")
             }
 
-            // Interface
-            row.append(result.interfaceName ?? "")
+            // Interface - escape in case of unusual interface names
+            row.append(escapeCSV(result.interfaceName ?? ""))
 
-            // Network metadata
+            // Network metadata - escape all string fields
             if let metadata = result.networkMetadata {
-                row.append(metadata.connectionType.rawValue)
+                row.append(escapeCSV(metadata.connectionType.rawValue))
                 row.append(escapeCSV(metadata.wifiSSID ?? ""))
-                row.append(metadata.wifiBand?.rawValue ?? "")
+                row.append(escapeCSV(metadata.wifiBand?.rawValue ?? ""))
                 row.append(metadata.wifiChannel.map { "\($0)" } ?? "")
-                row.append(metadata.signalQuality ?? "")
+                row.append(escapeCSV(metadata.signalQuality ?? ""))
                 row.append(metadata.wifiRSSI.map { "\($0)" } ?? "")
                 row.append(metadata.wifiTxRate.map { String(format: "%.0f", $0) } ?? "")
             } else {
@@ -174,8 +174,10 @@ class NetworkQualityViewModel: ObservableObject {
         return csv
     }
 
+    /// Escapes a string value for RFC 4180-compliant CSV output.
+    /// Handles commas, quotes, newlines, and carriage returns by wrapping in quotes and escaping internal quotes.
     private func escapeCSV(_ value: String) -> String {
-        if value.contains(",") || value.contains("\"") || value.contains("\n") {
+        if value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r") {
             return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
         }
         return value
@@ -188,19 +190,19 @@ class NetworkQualityViewModel: ObservableObject {
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
 
         var row: [String] = []
-        row.append(dateFormatter.string(from: result.timestamp))
+        row.append(escapeCSV(dateFormatter.string(from: result.timestamp)))
         row.append(String(format: "%.2f", result.downloadSpeedMbps))
         row.append(String(format: "%.2f", result.uploadSpeedMbps))
         row.append(result.responsivenessValue.map { "\($0)" } ?? "")
         row.append(result.baseRtt.map { String(format: "%.1f", $0) } ?? "")
-        row.append(result.interfaceName ?? "")
+        row.append(escapeCSV(result.interfaceName ?? ""))
 
         if let metadata = result.networkMetadata {
-            row.append(metadata.connectionType.rawValue)
+            row.append(escapeCSV(metadata.connectionType.rawValue))
             row.append(escapeCSV(metadata.wifiSSID ?? ""))
-            row.append(metadata.wifiBand?.rawValue ?? "")
+            row.append(escapeCSV(metadata.wifiBand?.rawValue ?? ""))
             row.append(metadata.wifiChannel.map { "\($0)" } ?? "")
-            row.append(metadata.signalQuality ?? "")
+            row.append(escapeCSV(metadata.signalQuality ?? ""))
             row.append(metadata.wifiRSSI.map { "\($0)" } ?? "")
             row.append(metadata.wifiTxRate.map { String(format: "%.0f", $0) } ?? "")
         } else {

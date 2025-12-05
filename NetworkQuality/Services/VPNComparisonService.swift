@@ -4,7 +4,7 @@ import SystemConfiguration
 
 // MARK: - VPN Status Detection
 
-enum VPNStatus {
+enum VPNStatus: Sendable {
     case connected(name: String?)
     case disconnected
     case unknown
@@ -26,7 +26,7 @@ enum VPNStatus {
     }
 }
 
-struct VPNComparisonResult: Identifiable {
+struct VPNComparisonResult: Identifiable, Sendable {
     let id = UUID()
     let timestamp: Date
 
@@ -78,7 +78,7 @@ struct VPNComparisonResult: Identifiable {
     }
 }
 
-struct SpeedTestSnapshot: Codable {
+struct SpeedTestSnapshot: Codable, Sendable {
     let downloadMbps: Double
     let uploadMbps: Double
     let latencyMs: Double?
@@ -96,7 +96,7 @@ struct SpeedTestSnapshot: Codable {
     }
 }
 
-enum ThrottlingAssessment {
+enum ThrottlingAssessment: Sendable {
     case likelyThrottling(improvement: Double)
     case normalOverhead
     case vpnBottleneck
@@ -155,6 +155,127 @@ enum ThrottlingAssessment {
     }
 }
 
+// MARK: - VPN Interface Detection
+
+/// Detects VPN interfaces supporting both IPv4 and IPv6
+struct VPNInterfaceDetector {
+    /// Common VPN interface prefixes on macOS
+    static let vpnInterfacePrefixes = ["utun", "ppp", "ipsec", "tun", "tap", "gif", "stf"]
+
+    /// Tailscale CGNAT range: 100.64.0.0/10 (100.64.0.0 - 100.127.255.255)
+    static func isTailscaleIPv4(_ ip: String) -> Bool {
+        guard ip.hasPrefix("100.") else { return false }
+        let parts = ip.split(separator: ".")
+        guard parts.count >= 2, let second = Int(parts[1]) else { return false }
+        return second >= 64 && second <= 127
+    }
+
+    /// Tailscale IPv6 range: fd7a:115c:a1e0::/48
+    static func isTailscaleIPv6(_ ip: String) -> Bool {
+        let ipLower = ip.lowercased()
+        return ipLower.hasPrefix("fd7a:115c:a1e0:")
+    }
+
+    /// WireGuard typically uses these IPv6 prefixes (ULA range)
+    static func isWireGuardIPv6(_ ip: String) -> Bool {
+        let ipLower = ip.lowercased()
+        // WireGuard often uses fd::/8 unique local addresses
+        return ipLower.hasPrefix("fd") && !isTailscaleIPv6(ip)
+    }
+
+    /// Check if interface name is a VPN interface
+    static func isVPNInterface(_ name: String) -> Bool {
+        for prefix in vpnInterfacePrefixes {
+            if name.hasPrefix(prefix) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Detect all active VPN interfaces with their IP addresses
+    static func detectVPNInterfaces() -> [(interface: String, ipv4: String?, ipv6: String?, vpnType: VPNType?)] {
+        var interfaces: [String: (ipv4: String?, ipv6: String?, vpnType: VPNType?)] = [:]
+
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0 else { return [] }
+        defer { freeifaddrs(ifaddr) }
+
+        var current = ifaddr
+        while let addr = current {
+            let name = String(cString: addr.pointee.ifa_name)
+            let family = addr.pointee.ifa_addr?.pointee.sa_family
+
+            if isVPNInterface(name) {
+                // Initialize if not exists
+                if interfaces[name] == nil {
+                    interfaces[name] = (nil, nil, nil)
+                }
+
+                // Get IP address
+                if let sockaddr = addr.pointee.ifa_addr {
+                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+
+                    if family == UInt8(AF_INET) {
+                        // IPv4
+                        if getnameinfo(sockaddr, socklen_t(MemoryLayout<sockaddr_in>.size),
+                                       &hostname, socklen_t(hostname.count),
+                                       nil, 0, NI_NUMERICHOST) == 0 {
+                            let ipAddress = String(cString: hostname)
+                            interfaces[name]?.ipv4 = ipAddress
+
+                            // Detect VPN type from IPv4
+                            if isTailscaleIPv4(ipAddress) {
+                                interfaces[name]?.vpnType = .tailscale
+                            }
+                        }
+                    } else if family == UInt8(AF_INET6) {
+                        // IPv6
+                        if getnameinfo(sockaddr, socklen_t(MemoryLayout<sockaddr_in6>.size),
+                                       &hostname, socklen_t(hostname.count),
+                                       nil, 0, NI_NUMERICHOST) == 0 {
+                            var ipAddress = String(cString: hostname)
+
+                            // Remove scope ID if present (e.g., "fe80::1%utun0")
+                            if let percentIndex = ipAddress.firstIndex(of: "%") {
+                                ipAddress = String(ipAddress[..<percentIndex])
+                            }
+
+                            // Skip link-local addresses for VPN detection
+                            if !ipAddress.lowercased().hasPrefix("fe80:") {
+                                interfaces[name]?.ipv6 = ipAddress
+
+                                // Detect VPN type from IPv6
+                                if isTailscaleIPv6(ipAddress) {
+                                    interfaces[name]?.vpnType = .tailscale
+                                } else if isWireGuardIPv6(ipAddress) {
+                                    interfaces[name]?.vpnType = .wireGuard
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            current = addr.pointee.ifa_next
+        }
+
+        // Filter to only interfaces with at least one IP address
+        return interfaces.compactMap { name, info in
+            guard info.ipv4 != nil || info.ipv6 != nil else { return nil }
+            return (interface: name, ipv4: info.ipv4, ipv6: info.ipv6, vpnType: info.vpnType)
+        }
+    }
+
+    enum VPNType: String {
+        case tailscale = "Tailscale"
+        case wireGuard = "WireGuard"
+        case openVPN = "OpenVPN"
+        case ipsec = "IPSec"
+        case other = "VPN"
+    }
+}
+
 // MARK: - VPN Comparison Service
 
 @MainActor
@@ -172,10 +293,14 @@ class VPNComparisonService: ObservableObject {
     @Published var currentDownloadSpeed: Double = 0
     @Published var currentUploadSpeed: Double = 0
 
+    // Detected VPN interfaces
+    @Published var detectedInterfaces: [(interface: String, ipv4: String?, ipv6: String?, vpnType: VPNInterfaceDetector.VPNType?)] = []
+
     private let networkService = NetworkQualityService()
     private var speedObservationTask: Task<Void, Never>?
+    private var runningTask: Task<Void, Never>?
 
-    enum ComparisonPhase: String {
+    enum ComparisonPhase: String, Sendable {
         case idle = "Ready"
         case detectingVPN = "Detecting VPN status..."
         case testingWithoutVPN = "Testing without VPN..."
@@ -197,60 +322,41 @@ class VPNComparisonService: ObservableObject {
     }
 
     private func detectVPNConnection() -> VPNStatus {
-        // Check for VPN interfaces with active IP addresses
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0 else { return .unknown }
-        defer { freeifaddrs(ifaddr) }
+        // Detect VPN interfaces (supports both IPv4 and IPv6)
+        detectedInterfaces = VPNInterfaceDetector.detectVPNInterfaces()
 
-        var vpnInterfacesWithIP: Set<String> = []
-        var isTailscale = false
-        var current = ifaddr
+        NetworkQualityLogger.vpn.debug("Detected \(self.detectedInterfaces.count) VPN interface(s)")
 
-        while let addr = current {
-            let name = String(cString: addr.pointee.ifa_name)
-            let family = addr.pointee.ifa_addr?.pointee.sa_family
-
-            // Common VPN interface prefixes
-            let isVPNInterface = name.hasPrefix("utun") || name.hasPrefix("ppp") ||
-                                 name.hasPrefix("ipsec") || name.hasPrefix("tun") ||
-                                 name.hasPrefix("tap")
-
-            // Only count VPN interfaces that have an actual IP address (IPv4)
-            // This ensures we don't detect disconnected VPN interfaces
-            if isVPNInterface && family == UInt8(AF_INET) {
-                // Get the IP address to check for Tailscale's CGNAT range (100.x.x.x)
-                if let sockaddr = addr.pointee.ifa_addr {
-                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                    if getnameinfo(sockaddr, socklen_t(sockaddr.pointee.sa_len),
-                                   &hostname, socklen_t(hostname.count),
-                                   nil, 0, NI_NUMERICHOST) == 0 {
-                        let ipAddress = String(cString: hostname)
-
-                        // Tailscale uses 100.x.x.x (CGNAT range)
-                        if ipAddress.hasPrefix("100.") {
-                            isTailscale = true
-                        }
-
-                        vpnInterfacesWithIP.insert(name)
-                    }
-                }
-            }
-
-            current = addr.pointee.ifa_next
+        for iface in detectedInterfaces {
+            NetworkQualityLogger.vpn.debug("  \(iface.interface): IPv4=\(iface.ipv4 ?? "none"), IPv6=\(iface.ipv6 ?? "none"), Type=\(iface.vpnType?.rawValue ?? "unknown")")
         }
 
-        if vpnInterfacesWithIP.isEmpty {
+        if detectedInterfaces.isEmpty {
             return .disconnected
         }
 
         // Determine VPN name
-        if isTailscale {
+        // Priority: Tailscale > WireGuard > System VPN name > Generic
+        if let tailscale = detectedInterfaces.first(where: { $0.vpnType == .tailscale }) {
+            NetworkQualityLogger.vpn.info("Tailscale VPN detected on \(tailscale.interface)")
             return .connected(name: "Tailscale")
         }
 
-        // Try to get VPN name from System Preferences for traditional VPNs
-        let vpnName = getActiveVPNName()
-        return .connected(name: vpnName)
+        if let wireGuard = detectedInterfaces.first(where: { $0.vpnType == .wireGuard }) {
+            NetworkQualityLogger.vpn.info("WireGuard VPN detected on \(wireGuard.interface)")
+            return .connected(name: "WireGuard")
+        }
+
+        // Try to get VPN name from System Preferences
+        if let systemVPNName = getActiveVPNName() {
+            NetworkQualityLogger.vpn.info("System VPN detected: \(systemVPNName)")
+            return .connected(name: systemVPNName)
+        }
+
+        // Generic VPN detected
+        let interfaceNames = detectedInterfaces.map { $0.interface }.joined(separator: ", ")
+        NetworkQualityLogger.vpn.info("Generic VPN detected on interface(s): \(interfaceNames)")
+        return .connected(name: nil)
     }
 
     private func getActiveVPNName() -> String? {
@@ -296,11 +402,28 @@ class VPNComparisonService: ObservableObject {
         if initialVPNStatus.isConnected {
             // VPN is on - test with VPN first, then ask user to disconnect
             await testWithVPN()
+
+            if Task.isCancelled {
+                cleanup()
+                return
+            }
+
             await testWithoutVPN()
         } else {
             // VPN is off - test without VPN first, then ask user to connect
             await testWithoutVPN()
+
+            if Task.isCancelled {
+                cleanup()
+                return
+            }
+
             await testWithVPN()
+        }
+
+        if Task.isCancelled {
+            cleanup()
+            return
         }
 
         // Analyze results
@@ -328,7 +451,8 @@ class VPNComparisonService: ObservableObject {
 
             // Wait for VPN to disconnect (up to 60 seconds)
             for _ in 0..<60 {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: NetworkQualityConstants.secondInNanoseconds)
                 updateVPNStatus()
                 if !currentVPNStatus.isConnected {
                     break
@@ -336,8 +460,10 @@ class VPNComparisonService: ObservableObject {
             }
 
             // Give network time to stabilize after VPN disconnect
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            try? await Task.sleep(nanoseconds: 2 * NetworkQualityConstants.secondInNanoseconds)
         }
+
+        if Task.isCancelled { return }
 
         currentPhase = .testingWithoutVPN
         progress = "Running speed test without VPN..."
@@ -358,7 +484,8 @@ class VPNComparisonService: ObservableObject {
 
             // Wait for VPN to connect (up to 60 seconds)
             for _ in 0..<60 {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                if Task.isCancelled { return }
+                try? await Task.sleep(nanoseconds: NetworkQualityConstants.secondInNanoseconds)
                 updateVPNStatus()
                 if currentVPNStatus.isConnected {
                     break
@@ -366,8 +493,10 @@ class VPNComparisonService: ObservableObject {
             }
 
             // Give network time to stabilize after VPN connect
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            try? await Task.sleep(nanoseconds: 2 * NetworkQualityConstants.secondInNanoseconds)
         }
+
+        if Task.isCancelled { return }
 
         currentPhase = .testingWithVPN
         progress = "Running speed test with VPN..."
@@ -388,12 +517,11 @@ class VPNComparisonService: ObservableObject {
         speedObservationTask = Task { [weak self] in
             guard let self = self else { return }
             while !Task.isCancelled {
-                // Poll the network service for current speeds
                 await MainActor.run {
                     self.currentDownloadSpeed = self.networkService.currentDownloadSpeed
                     self.currentUploadSpeed = self.networkService.currentUploadSpeed
                 }
-                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                try? await Task.sleep(nanoseconds: NetworkQualityConstants.progressPollInterval)
             }
         }
 
@@ -412,18 +540,25 @@ class VPNComparisonService: ObservableObject {
             let result = try await networkService.runTest(config: config)
             return result
         } catch {
+            NetworkQualityLogger.vpn.error("Speed test failed: \(error.localizedDescription)")
             return nil
         }
     }
 
-    func cancel() {
+    private func cleanup() {
         speedObservationTask?.cancel()
         speedObservationTask = nil
-        networkService.cancelTest()
+        runningTask?.cancel()
+        runningTask = nil
+        currentDownloadSpeed = 0
+        currentUploadSpeed = 0
         isRunning = false
         currentPhase = .idle
         progress = ""
-        currentDownloadSpeed = 0
-        currentUploadSpeed = 0
+    }
+
+    func cancel() {
+        networkService.cancelTest()
+        cleanup()
     }
 }

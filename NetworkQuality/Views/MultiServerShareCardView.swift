@@ -1,5 +1,8 @@
 import SwiftUI
 import AppKit
+import os.log
+
+private let multiServerShareLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "NetworkQuality", category: "MultiServerShare")
 
 /// A shareable card showing multi-server speed test comparison
 struct MultiServerShareCardView: View {
@@ -355,7 +358,7 @@ class MultiServerShareService {
         let cardView = MultiServerShareCardView(results: results)
 
         guard let image = cardView.renderAsImage() else {
-            print("Failed to render multi-server card image")
+            multiServerShareLogger.error("Failed to render multi-server card image")
             return
         }
 
@@ -404,7 +407,7 @@ class MultiServerShareService {
     /// Save PDF report to file with save dialog
     func savePDFReport(results: [SpeedTestResult], timestamp: Date = Date()) {
         guard let pdfData = generatePDFReport(results: results, timestamp: timestamp) else {
-            print("Failed to generate multi-server PDF report")
+            multiServerShareLogger.error("Failed to generate multi-server PDF report")
             return
         }
 
@@ -459,14 +462,14 @@ class MultiServerShareService {
         guard let tiffData = image.tiffRepresentation,
               let bitmapRep = NSBitmapImageRep(data: tiffData),
               let pngData = bitmapRep.representation(using: .png, properties: [:]) else {
-            print("Failed to convert image to PNG")
+            multiServerShareLogger.error("Failed to convert image to PNG format")
             return
         }
 
         do {
             try pngData.write(to: url)
         } catch {
-            print("Failed to save image: \(error)")
+            multiServerShareLogger.error("Failed to save image: \(error.localizedDescription)")
         }
     }
 

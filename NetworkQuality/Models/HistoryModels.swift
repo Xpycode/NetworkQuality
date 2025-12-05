@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Multi-Server History
 
-struct MultiServerHistoryEntry: Identifiable, Codable {
+struct MultiServerHistoryEntry: Identifiable, Codable, Sendable {
     let id: UUID
     let timestamp: Date
     let results: [StoredSpeedTestResult]
@@ -31,7 +31,7 @@ struct MultiServerHistoryEntry: Identifiable, Codable {
 }
 
 // Codable version of SpeedTestResult for persistence
-struct StoredSpeedTestResult: Identifiable, Codable {
+struct StoredSpeedTestResult: Identifiable, Codable, Sendable {
     let id: UUID
     let provider: String
     let downloadSpeed: Double
@@ -57,7 +57,7 @@ struct StoredSpeedTestResult: Identifiable, Codable {
 
 // MARK: - Network Tools History
 
-struct NetworkToolsHistoryEntry: Identifiable, Codable {
+struct NetworkToolsHistoryEntry: Identifiable, Codable, Sendable {
     let id: UUID
     let timestamp: Date
     let toolType: ToolType
@@ -65,7 +65,7 @@ struct NetworkToolsHistoryEntry: Identifiable, Codable {
     let summary: String
     let details: ToolDetails
 
-    enum ToolType: String, Codable {
+    enum ToolType: String, Codable, Sendable {
         case ping
         case traceroute
         case dns
@@ -87,14 +87,14 @@ struct NetworkToolsHistoryEntry: Identifiable, Codable {
         }
     }
 
-    enum ToolDetails: Codable {
+    enum ToolDetails: Codable, Sendable {
         case ping(PingDetails)
         case traceroute(TracerouteDetails)
         case dns(DNSDetails)
     }
 }
 
-struct PingDetails: Codable {
+struct PingDetails: Codable, Sendable {
     let packetsTransmitted: Int
     let packetsReceived: Int
     let minTime: Double?
@@ -107,12 +107,12 @@ struct PingDetails: Codable {
     }
 }
 
-struct TracerouteDetails: Codable {
+struct TracerouteDetails: Codable, Sendable {
     let hops: [TracerouteHopDetail]
     let reachedDestination: Bool
 }
 
-struct TracerouteHopDetail: Codable, Identifiable {
+struct TracerouteHopDetail: Codable, Identifiable, Sendable {
     var id: Int { hopNumber }
     let hopNumber: Int
     let hostname: String?
@@ -121,12 +121,12 @@ struct TracerouteHopDetail: Codable, Identifiable {
     let timedOut: Bool
 }
 
-struct DNSDetails: Codable {
+struct DNSDetails: Codable, Sendable {
     let recordType: String
     let records: [DNSRecordDetail]
 }
 
-struct DNSRecordDetail: Codable, Identifiable {
+struct DNSRecordDetail: Codable, Identifiable, Sendable {
     let id: UUID
     let type: String
     let value: String
@@ -142,7 +142,7 @@ struct DNSRecordDetail: Codable, Identifiable {
 
 // MARK: - LAN Speed History
 
-struct LANSpeedHistoryEntry: Identifiable, Codable {
+struct LANSpeedHistoryEntry: Identifiable, Codable, Sendable {
     let id: UUID
     let timestamp: Date
     let peerName: String
@@ -164,6 +164,80 @@ struct LANSpeedHistoryEntry: Identifiable, Codable {
     }
 }
 
+// MARK: - History Storage Actor (Off Main Thread)
+
+actor HistoryStorage {
+    private let multiServerKey = "multiServerHistory"
+    private let networkToolsKey = "networkToolsHistory"
+    private let lanSpeedKey = "lanSpeedHistory"
+    private let maxEntries = 100
+
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+
+    // Load operations
+    func loadMultiServerHistory() -> [MultiServerHistoryEntry] {
+        guard let data = UserDefaults.standard.data(forKey: multiServerKey) else { return [] }
+        do {
+            return try decoder.decode([MultiServerHistoryEntry].self, from: data)
+        } catch {
+            NetworkQualityLogger.history.error("Failed to decode multi-server history: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    func loadNetworkToolsHistory() -> [NetworkToolsHistoryEntry] {
+        guard let data = UserDefaults.standard.data(forKey: networkToolsKey) else { return [] }
+        do {
+            return try decoder.decode([NetworkToolsHistoryEntry].self, from: data)
+        } catch {
+            NetworkQualityLogger.history.error("Failed to decode network tools history: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    func loadLANSpeedHistory() -> [LANSpeedHistoryEntry] {
+        guard let data = UserDefaults.standard.data(forKey: lanSpeedKey) else { return [] }
+        do {
+            return try decoder.decode([LANSpeedHistoryEntry].self, from: data)
+        } catch {
+            NetworkQualityLogger.history.error("Failed to decode LAN speed history: \(error.localizedDescription)")
+            return []
+        }
+    }
+
+    // Save operations
+    func saveMultiServerHistory(_ history: [MultiServerHistoryEntry]) {
+        let trimmed = Array(history.prefix(maxEntries))
+        do {
+            let data = try encoder.encode(trimmed)
+            UserDefaults.standard.set(data, forKey: multiServerKey)
+        } catch {
+            NetworkQualityLogger.history.error("Failed to encode multi-server history: \(error.localizedDescription)")
+        }
+    }
+
+    func saveNetworkToolsHistory(_ history: [NetworkToolsHistoryEntry]) {
+        let trimmed = Array(history.prefix(maxEntries))
+        do {
+            let data = try encoder.encode(trimmed)
+            UserDefaults.standard.set(data, forKey: networkToolsKey)
+        } catch {
+            NetworkQualityLogger.history.error("Failed to encode network tools history: \(error.localizedDescription)")
+        }
+    }
+
+    func saveLANSpeedHistory(_ history: [LANSpeedHistoryEntry]) {
+        let trimmed = Array(history.prefix(maxEntries))
+        do {
+            let data = try encoder.encode(trimmed)
+            UserDefaults.standard.set(data, forKey: lanSpeedKey)
+        } catch {
+            NetworkQualityLogger.history.error("Failed to encode LAN speed history: \(error.localizedDescription)")
+        }
+    }
+}
+
 // MARK: - History Manager
 
 @MainActor
@@ -172,13 +246,13 @@ class HistoryManager: ObservableObject {
     @Published var networkToolsHistory: [NetworkToolsHistoryEntry] = []
     @Published var lanSpeedHistory: [LANSpeedHistoryEntry] = []
 
-    private let multiServerKey = "multiServerHistory"
-    private let networkToolsKey = "networkToolsHistory"
-    private let lanSpeedKey = "lanSpeedHistory"
+    private let storage = HistoryStorage()
     private let maxEntries = 100
 
     init() {
-        loadHistory()
+        Task {
+            await loadHistory()
+        }
     }
 
     // MARK: - Multi-Server History
@@ -192,17 +266,26 @@ class HistoryManager: ObservableObject {
             multiServerHistory = Array(multiServerHistory.prefix(maxEntries))
         }
 
-        persistMultiServerHistory()
+        // Persist off main thread
+        let historyToSave = multiServerHistory
+        Task.detached { [storage] in
+            await storage.saveMultiServerHistory(historyToSave)
+        }
     }
 
     func deleteMultiServerEntry(_ entry: MultiServerHistoryEntry) {
         multiServerHistory.removeAll { $0.id == entry.id }
-        persistMultiServerHistory()
+        let historyToSave = multiServerHistory
+        Task.detached { [storage] in
+            await storage.saveMultiServerHistory(historyToSave)
+        }
     }
 
     func clearMultiServerHistory() {
         multiServerHistory.removeAll()
-        persistMultiServerHistory()
+        Task.detached { [storage] in
+            await storage.saveMultiServerHistory([])
+        }
     }
 
     // MARK: - Network Tools History
@@ -318,50 +401,47 @@ class HistoryManager: ObservableObject {
         if lanSpeedHistory.count > maxEntries {
             lanSpeedHistory = Array(lanSpeedHistory.prefix(maxEntries))
         }
-        persistLanSpeedHistory()
+
+        let historyToSave = lanSpeedHistory
+        Task.detached { [storage] in
+            await storage.saveLANSpeedHistory(historyToSave)
+        }
     }
 
     func deleteLANSpeedEntry(_ entry: LANSpeedHistoryEntry) {
         lanSpeedHistory.removeAll { $0.id == entry.id }
-        persistLanSpeedHistory()
+        let historyToSave = lanSpeedHistory
+        Task.detached { [storage] in
+            await storage.saveLANSpeedHistory(historyToSave)
+        }
     }
 
     func clearLANSpeedHistory() {
         lanSpeedHistory.removeAll()
-        persistLanSpeedHistory()
-    }
-
-    // MARK: - Persistence
-
-    private func loadHistory() {
-        // Load multi-server history
-        if let data = UserDefaults.standard.data(forKey: multiServerKey),
-           let decoded = try? JSONDecoder().decode([MultiServerHistoryEntry].self, from: data) {
-            multiServerHistory = decoded
-        }
-
-        // Load network tools history
-        if let data = UserDefaults.standard.data(forKey: networkToolsKey),
-           let decoded = try? JSONDecoder().decode([NetworkToolsHistoryEntry].self, from: data) {
-            networkToolsHistory = decoded
-        }
-
-        // Load LAN speed history
-        if let data = UserDefaults.standard.data(forKey: lanSpeedKey),
-           let decoded = try? JSONDecoder().decode([LANSpeedHistoryEntry].self, from: data) {
-            lanSpeedHistory = decoded
+        Task.detached { [storage] in
+            await storage.saveLANSpeedHistory([])
         }
     }
 
-    private func persistMultiServerHistory() {
-        if let encoded = try? JSONEncoder().encode(multiServerHistory) {
-            UserDefaults.standard.set(encoded, forKey: multiServerKey)
-        }
+    // MARK: - Persistence Helpers
+
+    private func loadHistory() async {
+        // Load all history off main thread
+        async let multiServer = storage.loadMultiServerHistory()
+        async let networkTools = storage.loadNetworkToolsHistory()
+        async let lanSpeed = storage.loadLANSpeedHistory()
+
+        let (ms, nt, ls) = await (multiServer, networkTools, lanSpeed)
+
+        multiServerHistory = ms
+        networkToolsHistory = nt
+        lanSpeedHistory = ls
     }
 
     private func persistToolsHistory() {
-        if let encoded = try? JSONEncoder().encode(networkToolsHistory) {
-            UserDefaults.standard.set(encoded, forKey: networkToolsKey)
+        let historyToSave = networkToolsHistory
+        Task.detached { [storage] in
+            await storage.saveNetworkToolsHistory(historyToSave)
         }
     }
 
@@ -370,11 +450,5 @@ class HistoryManager: ObservableObject {
             networkToolsHistory = Array(networkToolsHistory.prefix(maxEntries))
         }
         persistToolsHistory()
-    }
-
-    private func persistLanSpeedHistory() {
-        if let encoded = try? JSONEncoder().encode(lanSpeedHistory) {
-            UserDefaults.standard.set(encoded, forKey: lanSpeedKey)
-        }
     }
 }

@@ -2,15 +2,21 @@ import Foundation
 
 // MARK: - Speed Test Provider Protocol
 
-protocol SpeedTestProvider {
+/// Protocol for network speed test providers.
+/// Implementations should handle errors gracefully:
+/// - `runTest` returns a result with the `error` field set on failure (does not throw for network errors)
+/// - Throwing is reserved for programming errors or unrecoverable states
+/// - Progress callbacks should be called throughout the test to update UI
+protocol SpeedTestProvider: Sendable {
     var name: String { get }
     var icon: String { get }
-    func runTest(onProgress: @escaping (SpeedTestProgress) -> Void) async throws -> SpeedTestResult
+    func runTest(onProgress: @escaping @Sendable (SpeedTestProgress) -> Void) async throws -> SpeedTestResult
+    func cancel() async
 }
 
 // MARK: - Data Models
 
-struct SpeedTestProgress {
+struct SpeedTestProgress: Sendable {
     let provider: String
     let phase: TestPhase
     let progress: Double // 0.0 - 1.0
@@ -18,7 +24,7 @@ struct SpeedTestProgress {
     let downloadSpeed: Double? // For parallel tests (Apple)
     let uploadSpeed: Double? // For parallel tests (Apple)
 
-    enum TestPhase: String {
+    enum TestPhase: String, Sendable {
         case connecting = "Connecting"
         case download = "Download"
         case upload = "Upload"
@@ -37,7 +43,7 @@ struct SpeedTestProgress {
     }
 }
 
-struct SpeedTestResult: Identifiable {
+struct SpeedTestResult: Identifiable, Sendable {
     let id = UUID()
     let provider: String
     let downloadSpeed: Double // Mbps
@@ -52,261 +58,128 @@ struct SpeedTestResult: Identifiable {
 
 // MARK: - Apple NetworkQuality Provider
 
-// Thread-safe state container for Apple speed test
-private final class AppleTestState: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _downloadSpeed: Double = 0
-    private var _uploadSpeed: Double = 0
-    private var _output: String = ""
-    private var _inUploadPhase: Bool = false
-    private var _uploadPhaseStartTime: Date?
+actor AppleSpeedTestProvider: SpeedTestProvider {
+    nonisolated let name = "Apple"
+    nonisolated let icon = "apple.logo"
 
-    var downloadSpeed: Double {
-        get { lock.withLock { _downloadSpeed } }
-        set { lock.withLock { _downloadSpeed = newValue } }
-    }
-
-    var uploadSpeed: Double {
-        get { lock.withLock { _uploadSpeed } }
-        set { lock.withLock { _uploadSpeed = newValue } }
-    }
-
-    var output: String {
-        get { lock.withLock { _output } }
-        set { lock.withLock { _output = newValue } }
-    }
-
-    var inUploadPhase: Bool {
-        get { lock.withLock { _inUploadPhase } }
-        set { lock.withLock { _inUploadPhase = newValue } }
-    }
-
-    var uploadPhaseStartTime: Date? {
-        get { lock.withLock { _uploadPhaseStartTime } }
-        set { lock.withLock { _uploadPhaseStartTime = newValue } }
-    }
-
-    func appendOutput(_ text: String) {
-        lock.withLock { _output += text }
-    }
-}
-
-final class AppleSpeedTestProvider: SpeedTestProvider, @unchecked Sendable {
-    let name = "Apple"
-    let icon = "apple.logo"
+    private let runner = AppleNetworkQualityRunner()
 
     private var isSequentialMode: Bool {
         UserDefaults.standard.bool(forKey: "appleSequentialMode")
     }
 
-    func runTest(onProgress: @escaping (SpeedTestProgress) -> Void) async throws -> SpeedTestResult {
-        onProgress(SpeedTestProgress(provider: name, phase: .connecting, progress: 0, currentSpeed: nil))
-
+    func runTest(onProgress: @escaping @Sendable (SpeedTestProgress) -> Void) async throws -> SpeedTestResult {
         let providerName = name
-        let sequentialMode = isSequentialMode
+        onProgress(SpeedTestProgress(provider: providerName, phase: .connecting, progress: 0, currentSpeed: nil))
 
-        return await withCheckedContinuation { continuation in
-            let process = Process()
-            // Use 'script' to allocate a pseudo-TTY for real-time progress output
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/script")
-            let nqCommand = sequentialMode ? "/usr/bin/networkQuality -s" : "/usr/bin/networkQuality"
-            process.arguments = ["-q", "/dev/null", "/bin/sh", "-c", nqCommand]
+        await runner.reset()
 
-            let outputPipe = Pipe()
-            process.standardOutput = outputPipe
-            process.standardError = outputPipe
+        var config = RunnerConfiguration()
+        config.mode = isSequentialMode ? .sequential : .parallel
 
-            let state = AppleTestState()
-            let startTime = Date()
-
-            // Parse live progress output
-            outputPipe.fileHandleForReading.readabilityHandler = { handle in
-                let data = handle.availableData
-                guard !data.isEmpty, let output = String(data: data, encoding: .utf8) else { return }
-
-                state.appendOutput(output)
-
-                // Parse progress lines like: "Downlink: 123.456 Mbps" and "Uplink: 8.200 Mbps"
-                let lines = output.components(separatedBy: CharacterSet(charactersIn: "\r\n"))
-
-                for line in lines {
-                    let trimmed = line.trimmingCharacters(in: .whitespaces)
-
-                    // Parse downlink speed
-                    if let downlinkRange = trimmed.range(of: "Downlink:\\s*([\\d.]+)\\s*Mbps", options: .regularExpression) {
-                        let match = trimmed[downlinkRange]
-                        if let speedMatch = match.range(of: "[\\d.]+", options: .regularExpression) {
-                            if let speed = Double(match[speedMatch]) {
-                                state.downloadSpeed = speed
-                            }
-                        }
-                    }
-
-                    // Parse uplink speed
-                    if let uplinkRange = trimmed.range(of: "Uplink:\\s*([\\d.]+)\\s*Mbps", options: .regularExpression) {
-                        let match = trimmed[uplinkRange]
-                        if let speedMatch = match.range(of: "[\\d.]+", options: .regularExpression) {
-                            if let speed = Double(match[speedMatch]) {
-                                state.uploadSpeed = speed
-                            }
-                        }
-                    }
+        do {
+            let result = try await runner.runTest(config: config) { progress in
+                let phase: SpeedTestProgress.TestPhase
+                switch progress.phase {
+                case .connecting: phase = .connecting
+                case .download: phase = .download
+                case .upload: phase = .upload
+                case .parallel: phase = .parallel
+                case .complete: phase = .complete
                 }
 
-                // Determine phase and progress
-                let elapsed = Date().timeIntervalSince(startTime)
-                let currentDownload = state.downloadSpeed
-                let currentUpload = state.uploadSpeed
-
-                if sequentialMode {
-                    // Sequential mode: track phase transitions properly
-                    // Once we enter upload phase, we never go back
-                    if currentUpload > 0 && !state.inUploadPhase {
-                        state.inUploadPhase = true
-                        state.uploadPhaseStartTime = Date()
-                    }
-
-                    let phase: SpeedTestProgress.TestPhase
-                    let currentSpeed: Double?
-                    let progress: Double
-
-                    if state.inUploadPhase {
-                        phase = .upload
-                        currentSpeed = currentUpload
-                        // Upload is second half: 0.5 to 1.0
-                        let uploadElapsed = Date().timeIntervalSince(state.uploadPhaseStartTime ?? Date())
-                        progress = min(0.5 + uploadElapsed / 12.0 * 0.45, 0.95)
-                    } else if currentDownload > 0 {
-                        phase = .download
-                        currentSpeed = currentDownload
-                        // Download is first half: 0.0 to 0.5
-                        progress = min(elapsed / 12.0 * 0.5, 0.5)
-                    } else {
-                        phase = .connecting
-                        currentSpeed = nil
-                        progress = 0.05
-                    }
-
-                    onProgress(SpeedTestProgress(
-                        provider: providerName,
-                        phase: phase,
-                        progress: progress,
-                        currentSpeed: currentSpeed
-                    ))
-                } else {
-                    // Parallel mode - show both speeds
-                    let progress = min(elapsed / 15.0, 0.95)
-                    let phase: SpeedTestProgress.TestPhase = (currentDownload > 0 || currentUpload > 0) ? .parallel : .connecting
-                    onProgress(SpeedTestProgress(
-                        provider: providerName,
-                        phase: phase,
-                        progress: progress,
-                        currentSpeed: max(currentDownload, currentUpload),
-                        downloadSpeed: currentDownload > 0 ? currentDownload : nil,
-                        uploadSpeed: currentUpload > 0 ? currentUpload : nil
-                    ))
-                }
-            }
-
-            process.terminationHandler = { _ in
-                outputPipe.fileHandleForReading.readabilityHandler = nil
-
-                // Parse final results from text output
-                var finalDownload: Double = 0
-                var finalUpload: Double = 0
-                var latency: Double? = nil
-
-                let allOutput = state.output
-                let fallbackDownload = state.downloadSpeed
-                let fallbackUpload = state.uploadSpeed
-
-                // Parse "Downlink capacity: X.XXX Mbps"
-                if let range = allOutput.range(of: "Downlink capacity:\\s*([\\d.]+)\\s*Mbps", options: .regularExpression) {
-                    let match = allOutput[range]
-                    if let speedMatch = match.range(of: "[\\d.]+", options: .regularExpression) {
-                        finalDownload = Double(match[speedMatch]) ?? fallbackDownload
-                    }
-                } else {
-                    finalDownload = fallbackDownload
-                }
-
-                // Parse "Uplink capacity: X.XXX Mbps"
-                if let range = allOutput.range(of: "Uplink capacity:\\s*([\\d.]+)\\s*Mbps", options: .regularExpression) {
-                    let match = allOutput[range]
-                    if let speedMatch = match.range(of: "[\\d.]+", options: .regularExpression) {
-                        finalUpload = Double(match[speedMatch]) ?? fallbackUpload
-                    }
-                } else {
-                    finalUpload = fallbackUpload
-                }
-
-                // Parse "Idle Latency: X.XXX milliseconds"
-                if let range = allOutput.range(of: "Idle Latency:\\s*([\\d.]+)", options: .regularExpression) {
-                    let match = allOutput[range]
-                    if let latencyMatch = match.range(of: "[\\d.]+", options: .regularExpression) {
-                        latency = Double(match[latencyMatch])
-                    }
-                }
-
-                onProgress(SpeedTestProgress(provider: providerName, phase: .complete, progress: 1.0, currentSpeed: finalDownload))
-
-                continuation.resume(returning: SpeedTestResult(
+                onProgress(SpeedTestProgress(
                     provider: providerName,
-                    downloadSpeed: finalDownload,
-                    uploadSpeed: finalUpload,
-                    latency: latency,
-                    serverLocation: "Apple CDN",
-                    timestamp: Date(),
-                    error: nil
+                    phase: phase,
+                    progress: progress.progressPercentage,
+                    currentSpeed: max(progress.downloadSpeed, progress.uploadSpeed),
+                    downloadSpeed: progress.downloadSpeed > 0 ? progress.downloadSpeed : nil,
+                    uploadSpeed: progress.uploadSpeed > 0 ? progress.uploadSpeed : nil
                 ))
             }
 
-            do {
-                try process.run()
-            } catch {
-                onProgress(SpeedTestProgress(provider: providerName, phase: .failed, progress: 0, currentSpeed: nil))
-                continuation.resume(returning: SpeedTestResult(
-                    provider: providerName,
-                    downloadSpeed: 0,
-                    uploadSpeed: 0,
-                    latency: nil,
-                    serverLocation: nil,
-                    timestamp: Date(),
-                    error: error.localizedDescription
-                ))
-            }
+            onProgress(SpeedTestProgress(provider: providerName, phase: .complete, progress: 1.0, currentSpeed: result.downloadMbps))
+
+            return SpeedTestResult(
+                provider: providerName,
+                downloadSpeed: result.downloadMbps,
+                uploadSpeed: result.uploadMbps,
+                latency: result.idleLatencyMs,
+                serverLocation: "Apple CDN",
+                timestamp: Date(),
+                error: nil
+            )
+        } catch {
+            onProgress(SpeedTestProgress(provider: providerName, phase: .failed, progress: 0, currentSpeed: nil))
+            return SpeedTestResult(
+                provider: providerName,
+                downloadSpeed: 0,
+                uploadSpeed: 0,
+                latency: nil,
+                serverLocation: nil,
+                timestamp: Date(),
+                error: error.localizedDescription
+            )
         }
+    }
+
+    func cancel() async {
+        await runner.cancel()
     }
 }
 
 // MARK: - Cloudflare Speed Test Provider
 
-final class CloudflareSpeedTestProvider: SpeedTestProvider, @unchecked Sendable {
-    let name = "Cloudflare"
-    let icon = "cloud.fill"
+actor CloudflareSpeedTestProvider: SpeedTestProvider {
+    nonisolated let name = "Cloudflare"
+    nonisolated let icon = "cloud.fill"
 
     private let baseURL = "https://speed.cloudflare.com"
     private let downloadSizes = [100_000, 1_000_000, 10_000_000, 25_000_000] // 100KB, 1MB, 10MB, 25MB
     private let uploadSizes = [100_000, 1_000_000, 5_000_000] // 100KB, 1MB, 5MB
 
-    func runTest(onProgress: @escaping (SpeedTestProgress) -> Void) async throws -> SpeedTestResult {
-        onProgress(SpeedTestProgress(provider: name, phase: .connecting, progress: 0, currentSpeed: nil))
+    // Reusable upload buffer to reduce allocations
+    private var uploadBuffer: Data?
+    private var currentTask: Task<SpeedTestResult, Error>?
+
+    func runTest(onProgress: @escaping @Sendable (SpeedTestProgress) -> Void) async throws -> SpeedTestResult {
+        let providerName = name
+        onProgress(SpeedTestProgress(provider: providerName, phase: .connecting, progress: 0, currentSpeed: nil))
+
+        // Pre-allocate upload buffer for largest size
+        let maxUploadSize = uploadSizes.max() ?? 5_000_000
+        if uploadBuffer == nil || uploadBuffer!.count < maxUploadSize {
+            uploadBuffer = generateRandomData(size: maxUploadSize)
+        }
 
         // Measure latency first
         let latency = await measureLatency()
 
         // Download test
-        onProgress(SpeedTestProgress(provider: name, phase: .download, progress: 0.1, currentSpeed: nil))
+        onProgress(SpeedTestProgress(provider: providerName, phase: .download, progress: 0.1, currentSpeed: nil))
         let downloadSpeed = await measureDownload(onProgress: onProgress)
 
+        // Check for cancellation
+        if Task.isCancelled {
+            return SpeedTestResult(
+                provider: providerName,
+                downloadSpeed: 0,
+                uploadSpeed: 0,
+                latency: nil,
+                serverLocation: nil,
+                timestamp: Date(),
+                error: "Cancelled"
+            )
+        }
+
         // Upload test
-        onProgress(SpeedTestProgress(provider: name, phase: .upload, progress: 0.6, currentSpeed: nil))
+        onProgress(SpeedTestProgress(provider: providerName, phase: .upload, progress: 0.6, currentSpeed: nil))
         let uploadSpeed = await measureUpload(onProgress: onProgress)
 
-        onProgress(SpeedTestProgress(provider: name, phase: .complete, progress: 1.0, currentSpeed: downloadSpeed))
+        onProgress(SpeedTestProgress(provider: providerName, phase: .complete, progress: 1.0, currentSpeed: downloadSpeed))
 
         return SpeedTestResult(
-            provider: name,
+            provider: providerName,
             downloadSpeed: downloadSpeed,
             uploadSpeed: uploadSpeed,
             latency: latency,
@@ -316,14 +189,23 @@ final class CloudflareSpeedTestProvider: SpeedTestProvider, @unchecked Sendable 
         )
     }
 
+    func cancel() async {
+        currentTask?.cancel()
+    }
+
+    /// Measures network latency by timing multiple small requests.
+    /// - Returns: Minimum observed latency in milliseconds, or `nil` if all ping attempts fail.
+    ///   Returning `nil` is a normal condition when latency cannot be determined; tests should continue.
     private func measureLatency() async -> Double? {
-        let url = URL(string: "\(baseURL)/__down?bytes=0")!
+        guard let url = URL(string: "\(baseURL)/__down?bytes=0") else { return nil }
         var request = URLRequest(url: url)
         request.timeoutInterval = 10
 
         var latencies: [Double] = []
 
         for _ in 0..<5 {
+            if Task.isCancelled { break }
+
             let start = Date()
             do {
                 let (_, _) = try await URLSession.shared.data(for: request)
@@ -335,17 +217,19 @@ final class CloudflareSpeedTestProvider: SpeedTestProvider, @unchecked Sendable 
         }
 
         guard !latencies.isEmpty else { return nil }
-        // Return minimum latency (closest to actual RTT)
         return latencies.min()
     }
 
-    private func measureDownload(onProgress: @escaping (SpeedTestProgress) -> Void) async -> Double {
+    private func measureDownload(onProgress: @escaping @Sendable (SpeedTestProgress) -> Void) async -> Double {
         var totalBytes: Int64 = 0
         var totalTime: TimeInterval = 0
         var speeds: [Double] = []
+        let providerName = name
 
         for (index, size) in downloadSizes.enumerated() {
-            let url = URL(string: "\(baseURL)/__down?bytes=\(size)")!
+            if Task.isCancelled { break }
+
+            guard let url = URL(string: "\(baseURL)/__down?bytes=\(size)") else { continue }
             var request = URLRequest(url: url)
             request.timeoutInterval = 30
 
@@ -357,31 +241,36 @@ final class CloudflareSpeedTestProvider: SpeedTestProvider, @unchecked Sendable 
                 totalBytes += Int64(data.count)
                 totalTime += elapsed
 
-                let speedMbps = Double(data.count * 8) / elapsed / 1_000_000
+                let speedMbps = Double(data.count * NetworkQualityConstants.bitsPerByte) / elapsed / NetworkQualityConstants.megabit
                 speeds.append(speedMbps)
 
                 let progress = 0.1 + (Double(index + 1) / Double(downloadSizes.count)) * 0.4
-                onProgress(SpeedTestProgress(provider: name, phase: .download, progress: progress, currentSpeed: speedMbps))
+                onProgress(SpeedTestProgress(provider: providerName, phase: .download, progress: progress, currentSpeed: speedMbps))
             } catch {
                 continue
             }
         }
 
-        // Return average speed weighted toward larger transfers
         guard !speeds.isEmpty else { return 0 }
-        return Double(totalBytes * 8) / totalTime / 1_000_000
+        return Double(totalBytes * Int64(NetworkQualityConstants.bitsPerByte)) / totalTime / NetworkQualityConstants.megabit
     }
 
-    private func measureUpload(onProgress: @escaping (SpeedTestProgress) -> Void) async -> Double {
+    private func measureUpload(onProgress: @escaping @Sendable (SpeedTestProgress) -> Void) async -> Double {
         var totalBytes: Int64 = 0
         var totalTime: TimeInterval = 0
         var speeds: [Double] = []
+        let providerName = name
+
+        guard let buffer = uploadBuffer else { return 0 }
 
         for (index, size) in uploadSizes.enumerated() {
-            let url = URL(string: "\(baseURL)/__up")!
+            if Task.isCancelled { break }
+
+            guard let url = URL(string: "\(baseURL)/__up") else { continue }
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
-            request.httpBody = generateRandomData(size: size)
+            // Reuse buffer - just slice to needed size
+            request.httpBody = buffer.prefix(size)
             request.timeoutInterval = 30
 
             let start = Date()
@@ -392,44 +281,125 @@ final class CloudflareSpeedTestProvider: SpeedTestProvider, @unchecked Sendable 
                 totalBytes += Int64(size)
                 totalTime += elapsed
 
-                let speedMbps = Double(size * 8) / elapsed / 1_000_000
+                let speedMbps = Double(size * NetworkQualityConstants.bitsPerByte) / elapsed / NetworkQualityConstants.megabit
                 speeds.append(speedMbps)
 
                 let progress = 0.6 + (Double(index + 1) / Double(uploadSizes.count)) * 0.35
-                onProgress(SpeedTestProgress(provider: name, phase: .upload, progress: progress, currentSpeed: speedMbps))
+                onProgress(SpeedTestProgress(provider: providerName, phase: .upload, progress: progress, currentSpeed: speedMbps))
             } catch {
                 continue
             }
         }
 
         guard !speeds.isEmpty else { return 0 }
-        return Double(totalBytes * 8) / totalTime / 1_000_000
+        return Double(totalBytes * Int64(NetworkQualityConstants.bitsPerByte)) / totalTime / NetworkQualityConstants.megabit
     }
 
     private func generateRandomData(size: Int) -> Data {
         var data = Data(count: size)
         data.withUnsafeMutableBytes { ptr in
-            arc4random_buf(ptr.baseAddress!, size)
+            guard let baseAddress = ptr.baseAddress else { return }
+            arc4random_buf(baseAddress, size)
         }
         return data
     }
 }
 
+// MARK: - Completion Guard (for WebSocket race safety)
+
+/// Actor to guard against multiple completions in async callback scenarios.
+/// Ensures continuation is resumed exactly once even with competing callbacks.
+private actor CompletionGuard<T: Sendable> {
+    private var hasCompleted = false
+    private var continuation: CheckedContinuation<T, Never>?
+
+    func setContinuation(_ cont: CheckedContinuation<T, Never>) {
+        self.continuation = cont
+    }
+
+    /// Attempts to complete with the given value. Returns true if this was the first completion.
+    func tryComplete(with value: T) -> Bool {
+        guard !hasCompleted, let cont = continuation else { return false }
+        hasCompleted = true
+        continuation = nil
+        cont.resume(returning: value)
+        return true
+    }
+
+    var isCompleted: Bool { hasCompleted }
+}
+
+// MARK: - Download Test State (actor-isolated shared state)
+
+/// Actor to safely manage shared state during NDT7 download test.
+private actor DownloadTestState {
+    private var totalBytes: Int64 = 0
+    private var startTime = Date()
+    private var lastMeasurement: NDT7Measurement?
+
+    func addBytes(_ count: Int64) {
+        totalBytes += count
+    }
+
+    func setMeasurement(_ measurement: NDT7Measurement) {
+        lastMeasurement = measurement
+    }
+
+    func getMeasurement() -> NDT7Measurement? {
+        lastMeasurement
+    }
+
+    func getStats() -> (totalBytes: Int64, elapsed: TimeInterval) {
+        (totalBytes, Date().timeIntervalSince(startTime))
+    }
+}
+
+// MARK: - Upload Test State (actor-isolated shared state)
+
+/// Actor to safely manage shared state during NDT7 upload test.
+private actor UploadTestState {
+    private var totalBytesSent: Int64 = 0
+    private var startTime = Date()
+    private var lastMeasurement: NDT7Measurement?
+
+    func addBytesSent(_ count: Int64) {
+        totalBytesSent += count
+    }
+
+    func setMeasurement(_ measurement: NDT7Measurement) {
+        lastMeasurement = measurement
+    }
+
+    func getMeasurement() -> NDT7Measurement? {
+        lastMeasurement
+    }
+
+    func getStats() -> (totalBytesSent: Int64, elapsed: TimeInterval) {
+        (totalBytesSent, Date().timeIntervalSince(startTime))
+    }
+}
+
 // MARK: - M-Lab NDT7 Speed Test Provider
 
-final class MLabSpeedTestProvider: SpeedTestProvider, @unchecked Sendable {
-    let name = "M-Lab"
-    let icon = "globe.americas.fill"
+actor MLabSpeedTestProvider: SpeedTestProvider {
+    nonisolated let name = "M-Lab"
+    nonisolated let icon = "globe.americas.fill"
 
     private let locateURL = "https://locate.measurementlab.net/v2/nearest/ndt/ndt7"
+    private let downloadTimeout: TimeInterval = 12
+    private let uploadTimeout: TimeInterval = 10
+    private let uploadChunkSize = 1 << 13 // 8KB chunks
 
-    func runTest(onProgress: @escaping (SpeedTestProgress) -> Void) async throws -> SpeedTestResult {
-        onProgress(SpeedTestProgress(provider: name, phase: .connecting, progress: 0, currentSpeed: nil))
+    private var currentWebSocketTask: URLSessionWebSocketTask?
+
+    func runTest(onProgress: @escaping @Sendable (SpeedTestProgress) -> Void) async throws -> SpeedTestResult {
+        let providerName = name
+        onProgress(SpeedTestProgress(provider: providerName, phase: .connecting, progress: 0, currentSpeed: nil))
 
         // Discover nearest server
         guard let serverInfo = await discoverServer() else {
             return SpeedTestResult(
-                provider: name,
+                provider: providerName,
                 downloadSpeed: 0,
                 uploadSpeed: 0,
                 latency: nil,
@@ -439,20 +409,32 @@ final class MLabSpeedTestProvider: SpeedTestProvider, @unchecked Sendable {
             )
         }
 
-        onProgress(SpeedTestProgress(provider: name, phase: .download, progress: 0.1, currentSpeed: nil))
+        onProgress(SpeedTestProgress(provider: providerName, phase: .download, progress: 0.1, currentSpeed: nil))
 
         // Run download test
         let downloadResult = await runDownloadTest(url: serverInfo.downloadURL, onProgress: onProgress)
 
-        onProgress(SpeedTestProgress(provider: name, phase: .upload, progress: 0.55, currentSpeed: nil))
+        if Task.isCancelled {
+            return SpeedTestResult(
+                provider: providerName,
+                downloadSpeed: 0,
+                uploadSpeed: 0,
+                latency: nil,
+                serverLocation: nil,
+                timestamp: Date(),
+                error: "Cancelled"
+            )
+        }
+
+        onProgress(SpeedTestProgress(provider: providerName, phase: .upload, progress: 0.55, currentSpeed: nil))
 
         // Run upload test
         let uploadResult = await runUploadTest(url: serverInfo.uploadURL, onProgress: onProgress)
 
-        onProgress(SpeedTestProgress(provider: name, phase: .complete, progress: 1.0, currentSpeed: downloadResult.speed))
+        onProgress(SpeedTestProgress(provider: providerName, phase: .complete, progress: 1.0, currentSpeed: downloadResult.speed))
 
         return SpeedTestResult(
-            provider: name,
+            provider: providerName,
             downloadSpeed: downloadResult.speed,
             uploadSpeed: uploadResult.speed,
             latency: downloadResult.latency ?? uploadResult.latency,
@@ -462,12 +444,20 @@ final class MLabSpeedTestProvider: SpeedTestProvider, @unchecked Sendable {
         )
     }
 
+    func cancel() async {
+        currentWebSocketTask?.cancel(with: .goingAway, reason: nil)
+        currentWebSocketTask = nil
+    }
+
     private struct ServerInfo {
         let downloadURL: String
         let uploadURL: String
         let location: String
     }
 
+    /// Discovers the nearest M-Lab NDT7 server using the locate API.
+    /// - Returns: ServerInfo with download/upload URLs on success, or `nil` if server discovery fails.
+    ///   Callers should handle `nil` by reporting an error to the user.
     private func discoverServer() async -> ServerInfo? {
         guard let url = URL(string: locateURL) else { return nil }
 
@@ -497,7 +487,7 @@ final class MLabSpeedTestProvider: SpeedTestProvider, @unchecked Sendable {
                 }
             }
         } catch {
-            print("M-Lab server discovery failed: \(error)")
+            NetworkQualityLogger.multiServer.error("M-Lab server discovery failed: \(error.localizedDescription)")
         }
 
         return nil
@@ -509,52 +499,62 @@ final class MLabSpeedTestProvider: SpeedTestProvider, @unchecked Sendable {
         let error: String?
     }
 
-    private func runDownloadTest(url: String, onProgress: @escaping (SpeedTestProgress) -> Void) async -> TestResult {
+    private func runDownloadTest(url: String, onProgress: @escaping @Sendable (SpeedTestProgress) -> Void) async -> TestResult {
         guard let wsURL = URL(string: url) else {
             return TestResult(speed: 0, latency: nil, error: "Invalid download URL")
         }
 
+        let providerName = name
+        let guard_ = CompletionGuard<TestResult>()
+
         return await withCheckedContinuation { continuation in
+            Task {
+                await guard_.setContinuation(continuation)
+            }
+
             let session = URLSession(configuration: .default)
             let task = session.webSocketTask(with: wsURL, protocols: ["net.measurementlab.ndt.v7"])
+            currentWebSocketTask = task
 
-            var totalBytes: Int64 = 0
-            let startTime = Date()
-            var lastMeasurement: NDT7Measurement?
-            var completed = false
+            // Shared state protected by actor isolation
+            let state = DownloadTestState()
 
-            func receiveMessage() {
-                guard !completed else { return }
+            @Sendable func receiveMessage() {
+                Task {
+                    guard await !guard_.isCompleted && !Task.isCancelled else { return }
 
-                task.receive { result in
-                    switch result {
-                    case .success(let message):
-                        switch message {
-                        case .data(let data):
-                            totalBytes += Int64(data.count)
-                            let elapsed = Date().timeIntervalSince(startTime)
-                            let speedMbps = Double(totalBytes * 8) / elapsed / 1_000_000
-                            let progress = min(0.1 + elapsed / 10.0 * 0.4, 0.5)
-                            onProgress(SpeedTestProgress(provider: self.name, phase: .download, progress: progress, currentSpeed: speedMbps))
+                    task.receive { result in
+                        Task {
+                            switch result {
+                            case .success(let message):
+                                switch message {
+                                case .data(let data):
+                                    await state.addBytes(Int64(data.count))
+                                    let (totalBytes, elapsed) = await state.getStats()
+                                    let speedMbps = Double(totalBytes * Int64(NetworkQualityConstants.bitsPerByte)) / elapsed / NetworkQualityConstants.megabit
+                                    let progress = min(0.1 + elapsed / 10.0 * 0.4, 0.5)
+                                    onProgress(SpeedTestProgress(provider: providerName, phase: .download, progress: progress, currentSpeed: speedMbps))
 
-                        case .string(let text):
-                            if let data = text.data(using: .utf8),
-                               let measurement = try? JSONDecoder().decode(NDT7Measurement.self, from: data) {
-                                lastMeasurement = measurement
+                                case .string(let text):
+                                    if let data = text.data(using: .utf8),
+                                       let measurement = try? JSONDecoder().decode(NDT7Measurement.self, from: data) {
+                                        await state.setMeasurement(measurement)
+                                    }
+
+                                @unknown default:
+                                    break
+                                }
+
+                                receiveMessage()
+
+                            case .failure:
+                                let (totalBytes, elapsed) = await state.getStats()
+                                let speedMbps = totalBytes > 0 ? Double(totalBytes * Int64(NetworkQualityConstants.bitsPerByte)) / elapsed / NetworkQualityConstants.megabit : 0
+                                let measurement = await state.getMeasurement()
+                                let latency = measurement?.tcpInfo?.minRTT.map { Double($0) / 1000.0 }
+                                _ = await guard_.tryComplete(with: TestResult(speed: speedMbps, latency: latency, error: nil))
                             }
-
-                        @unknown default:
-                            break
                         }
-
-                        receiveMessage()
-
-                    case .failure:
-                        completed = true
-                        let elapsed = Date().timeIntervalSince(startTime)
-                        let speedMbps = totalBytes > 0 ? Double(totalBytes * 8) / elapsed / 1_000_000 : 0
-                        let latency = lastMeasurement?.tcpInfo?.minRTT.map { Double($0) / 1000.0 }
-                        continuation.resume(returning: TestResult(speed: speedMbps, latency: latency, error: nil))
                     }
                 }
             }
@@ -562,84 +562,101 @@ final class MLabSpeedTestProvider: SpeedTestProvider, @unchecked Sendable {
             task.resume()
             receiveMessage()
 
-            // Timeout after 12 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 12) {
-                guard !completed else { return }
-                completed = true
+            // Timeout task
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(downloadTimeout) * NetworkQualityConstants.secondInNanoseconds)
+                guard await !guard_.isCompleted else { return }
                 task.cancel(with: .goingAway, reason: nil)
-                let elapsed = Date().timeIntervalSince(startTime)
-                let speedMbps = totalBytes > 0 ? Double(totalBytes * 8) / elapsed / 1_000_000 : 0
-                let latency = lastMeasurement?.tcpInfo?.minRTT.map { Double($0) / 1000.0 }
-                continuation.resume(returning: TestResult(speed: speedMbps, latency: latency, error: nil))
+                let (totalBytes, elapsed) = await state.getStats()
+                let speedMbps = totalBytes > 0 ? Double(totalBytes * Int64(NetworkQualityConstants.bitsPerByte)) / elapsed / NetworkQualityConstants.megabit : 0
+                let measurement = await state.getMeasurement()
+                let latency = measurement?.tcpInfo?.minRTT.map { Double($0) / 1000.0 }
+                _ = await guard_.tryComplete(with: TestResult(speed: speedMbps, latency: latency, error: nil))
             }
         }
     }
 
-    private func runUploadTest(url: String, onProgress: @escaping (SpeedTestProgress) -> Void) async -> TestResult {
+    private func runUploadTest(url: String, onProgress: @escaping @Sendable (SpeedTestProgress) -> Void) async -> TestResult {
         guard let wsURL = URL(string: url) else {
             return TestResult(speed: 0, latency: nil, error: "Invalid upload URL")
         }
 
+        let providerName = name
+        let chunkSize = uploadChunkSize
+        let timeout = uploadTimeout
+        let guard_ = CompletionGuard<TestResult>()
+        let state = UploadTestState()
+
+        // Pre-generate upload chunk (as let constant for Sendable safety)
+        let uploadChunk: Data = {
+            var data = Data(count: chunkSize)
+            data.withUnsafeMutableBytes { ptr in
+                guard let baseAddress = ptr.baseAddress else { return }
+                arc4random_buf(baseAddress, chunkSize)
+            }
+            return data
+        }()
+
         return await withCheckedContinuation { continuation in
+            Task {
+                await guard_.setContinuation(continuation)
+            }
+
             let session = URLSession(configuration: .default)
             let task = session.webSocketTask(with: wsURL, protocols: ["net.measurementlab.ndt.v7"])
+            currentWebSocketTask = task
 
-            var totalBytesSent: Int64 = 0
-            let startTime = Date()
-            var lastMeasurement: NDT7Measurement?
-            var completed = false
-            let chunkSize = 1 << 13 // 8KB chunks
+            @Sendable func sendData() {
+                Task {
+                    guard await !guard_.isCompleted && !Task.isCancelled else { return }
 
-            func sendData() {
-                guard !completed else { return }
-
-                let elapsed = Date().timeIntervalSince(startTime)
-                if elapsed >= 10 {
-                    // Test complete
-                    completed = true
-                    task.cancel(with: .goingAway, reason: nil)
-                    let speedMbps = totalBytesSent > 0 ? Double(totalBytesSent * 8) / elapsed / 1_000_000 : 0
-                    let latency = lastMeasurement?.tcpInfo?.minRTT.map { Double($0) / 1000.0 }
-                    continuation.resume(returning: TestResult(speed: speedMbps, latency: latency, error: nil))
-                    return
-                }
-
-                var data = Data(count: chunkSize)
-                data.withUnsafeMutableBytes { ptr in
-                    arc4random_buf(ptr.baseAddress!, chunkSize)
-                }
-
-                task.send(.data(data)) { error in
-                    if error != nil {
-                        guard !completed else { return }
-                        completed = true
-                        let elapsed = Date().timeIntervalSince(startTime)
-                        let speedMbps = totalBytesSent > 0 ? Double(totalBytesSent * 8) / elapsed / 1_000_000 : 0
-                        continuation.resume(returning: TestResult(speed: speedMbps, latency: nil, error: nil))
+                    let (_, elapsed) = await state.getStats()
+                    if elapsed >= timeout {
+                        task.cancel(with: .goingAway, reason: nil)
+                        let (totalBytesSent, finalElapsed) = await state.getStats()
+                        let speedMbps = totalBytesSent > 0 ? Double(totalBytesSent * Int64(NetworkQualityConstants.bitsPerByte)) / finalElapsed / NetworkQualityConstants.megabit : 0
+                        let measurement = await state.getMeasurement()
+                        let latency = measurement?.tcpInfo?.minRTT.map { Double($0) / 1000.0 }
+                        _ = await guard_.tryComplete(with: TestResult(speed: speedMbps, latency: latency, error: nil))
                         return
                     }
 
-                    totalBytesSent += Int64(chunkSize)
-                    let elapsed = Date().timeIntervalSince(startTime)
-                    let speedMbps = Double(totalBytesSent * 8) / elapsed / 1_000_000
-                    let progress = 0.55 + elapsed / 10.0 * 0.4
-                    onProgress(SpeedTestProgress(provider: self.name, phase: .upload, progress: min(progress, 0.95), currentSpeed: speedMbps))
+                    task.send(.data(uploadChunk)) { error in
+                        Task {
+                            if error != nil {
+                                let (totalBytesSent, elapsed) = await state.getStats()
+                                let speedMbps = totalBytesSent > 0 ? Double(totalBytesSent * Int64(NetworkQualityConstants.bitsPerByte)) / elapsed / NetworkQualityConstants.megabit : 0
+                                _ = await guard_.tryComplete(with: TestResult(speed: speedMbps, latency: nil, error: nil))
+                                return
+                            }
 
-                    sendData()
+                            await state.addBytesSent(Int64(chunkSize))
+                            let (totalBytesSent, elapsed) = await state.getStats()
+                            let speedMbps = Double(totalBytesSent * Int64(NetworkQualityConstants.bitsPerByte)) / elapsed / NetworkQualityConstants.megabit
+                            let progress = 0.55 + elapsed / 10.0 * 0.4
+                            onProgress(SpeedTestProgress(provider: providerName, phase: .upload, progress: min(progress, 0.95), currentSpeed: speedMbps))
+
+                            sendData()
+                        }
+                    }
                 }
             }
 
-            func receiveMessages() {
-                guard !completed else { return }
+            @Sendable func receiveMessages() {
+                Task {
+                    guard await !guard_.isCompleted && !Task.isCancelled else { return }
 
-                task.receive { result in
-                    if case .success(let message) = result,
-                       case .string(let text) = message,
-                       let data = text.data(using: .utf8),
-                       let measurement = try? JSONDecoder().decode(NDT7Measurement.self, from: data) {
-                        lastMeasurement = measurement
+                    task.receive { result in
+                        Task {
+                            if case .success(let message) = result,
+                               case .string(let text) = message,
+                               let data = text.data(using: .utf8),
+                               let measurement = try? JSONDecoder().decode(NDT7Measurement.self, from: data) {
+                                await state.setMeasurement(measurement)
+                            }
+                            receiveMessages()
+                        }
                     }
-                    receiveMessages()
                 }
             }
 
@@ -652,7 +669,7 @@ final class MLabSpeedTestProvider: SpeedTestProvider, @unchecked Sendable {
 
 // MARK: - NDT7 Measurement Models
 
-struct NDT7Measurement: Codable {
+struct NDT7Measurement: Codable, Sendable {
     let appInfo: AppInfo?
     let origin: String?
     let test: String?
@@ -665,7 +682,7 @@ struct NDT7Measurement: Codable {
         case tcpInfo = "TCPInfo"
     }
 
-    struct AppInfo: Codable {
+    struct AppInfo: Codable, Sendable {
         let elapsedTime: Int?
         let numBytes: Int?
 
@@ -675,7 +692,7 @@ struct NDT7Measurement: Codable {
         }
     }
 
-    struct TCPInfo: Codable {
+    struct TCPInfo: Codable, Sendable {
         let minRTT: Int?
         let rtt: Int?
         let bytesAcked: Int?
@@ -696,12 +713,14 @@ enum SpeedTestError: LocalizedError {
     case parseError(String)
     case networkError(String)
     case timeout
+    case cancelled
 
     var errorDescription: String? {
         switch self {
         case .parseError(let msg): return "Parse error: \(msg)"
         case .networkError(let msg): return "Network error: \(msg)"
         case .timeout: return "Test timed out"
+        case .cancelled: return "Test cancelled"
         }
     }
 }
@@ -715,11 +734,13 @@ class MultiServerTestCoordinator: ObservableObject {
     @Published var isRunning = false
     @Published var currentProvider: String?
 
-    private let providers: [SpeedTestProvider] = [
-        AppleSpeedTestProvider(),
-        CloudflareSpeedTestProvider(),
-        MLabSpeedTestProvider()
-    ]
+    private let appleProvider = AppleSpeedTestProvider()
+    private let cloudflareProvider = CloudflareSpeedTestProvider()
+    private let mlabProvider = MLabSpeedTestProvider()
+
+    private var providers: [any SpeedTestProvider] {
+        [appleProvider, cloudflareProvider, mlabProvider]
+    }
 
     private var runningTask: Task<Void, Never>?
 
@@ -730,6 +751,14 @@ class MultiServerTestCoordinator: ObservableObject {
     func stopAllTests() {
         runningTask?.cancel()
         runningTask = nil
+
+        // Cancel all providers
+        Task {
+            await appleProvider.cancel()
+            await cloudflareProvider.cancel()
+            await mlabProvider.cancel()
+        }
+
         currentProvider = nil
         isRunning = false
     }
@@ -751,17 +780,14 @@ class MultiServerTestCoordinator: ObservableObject {
             )
         }
 
-        // Capture providers list before the task
-        let providersToTest = providers
-
-        // Run tests in a task (survives view destruction since we hold reference)
         runningTask = Task { [weak self] in
-            for provider in providersToTest {
-                // Check for cancellation before each test
+            guard let self = self else { return }
+
+            for provider in self.providers {
                 if Task.isCancelled { break }
 
-                await MainActor.run { [weak self] in
-                    self?.currentProvider = provider.name
+                await MainActor.run {
+                    self.currentProvider = provider.name
                 }
 
                 do {
@@ -771,17 +797,16 @@ class MultiServerTestCoordinator: ObservableObject {
                         }
                     }
 
-                    // Check for cancellation after test
                     if Task.isCancelled { break }
 
-                    await MainActor.run { [weak self] in
-                        self?.results.append(result)
+                    await MainActor.run {
+                        self.results.append(result)
                     }
                 } catch {
                     if Task.isCancelled { break }
 
-                    await MainActor.run { [weak self] in
-                        self?.results.append(SpeedTestResult(
+                    await MainActor.run {
+                        self.results.append(SpeedTestResult(
                             provider: provider.name,
                             downloadSpeed: 0,
                             uploadSpeed: 0,
@@ -794,16 +819,25 @@ class MultiServerTestCoordinator: ObservableObject {
                 }
             }
 
-            await MainActor.run { [weak self] in
-                self?.currentProvider = nil
-                self?.isRunning = false
+            await MainActor.run {
+                self.currentProvider = nil
+                self.isRunning = false
             }
         }
     }
 
     func runSingleTest(providerName: String) {
-        guard let provider = providers.first(where: { $0.name == providerName }) else { return }
         guard !isRunning else { return }
+
+        let provider: (any SpeedTestProvider)?
+        switch providerName {
+        case "Apple": provider = appleProvider
+        case "Cloudflare": provider = cloudflareProvider
+        case "M-Lab": provider = mlabProvider
+        default: provider = nil
+        }
+
+        guard let provider = provider else { return }
 
         isRunning = true
         currentProvider = providerName
@@ -818,7 +852,6 @@ class MultiServerTestCoordinator: ObservableObject {
             currentSpeed: nil
         )
 
-        // Capture self weakly for the detached task
         runningTask = Task { [weak self] in
             do {
                 let result = try await provider.runTest { [weak self] progressUpdate in
@@ -851,9 +884,6 @@ class MultiServerTestCoordinator: ObservableObject {
     }
 
     func cancelTests() {
-        runningTask?.cancel()
-        runningTask = nil
-        currentProvider = nil
-        isRunning = false
+        stopAllTests()
     }
 }
