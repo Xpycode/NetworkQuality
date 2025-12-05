@@ -2,6 +2,13 @@
 
 A native macOS application for comprehensive network performance testing and diagnostics.
 
+![macOS 14.0+](https://img.shields.io/badge/macOS-14.0+-blue)
+![Swift 5.0](https://img.shields.io/badge/Swift-5.0-orange)
+![license MIT](https://img.shields.io/badge/license-MIT-green)
+![version 1.0](https://img.shields.io/badge/version-1.0-yellow)
+[![Download v1.0](https://img.shields.io/badge/Download-v1.0-brightgreen)](https://github.com/Xpycode/NetworkQuality/releases/download/v1.0/NetworkQuality-1.0.dmg)
+![downloads](https://img.shields.io/github/downloads/Xpycode/NetworkQuality/total)
+
 ![NetworkQuality Speed Test Result](screenshots/NetworkQaulity-03-Test-MBps-Result.png)
 
 ## Features
