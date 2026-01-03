@@ -153,8 +153,8 @@ struct ShareableResultCardView: View {
                     }
                 }
 
-                HStack(spacing: 12) {
-                    if metadata.connectionType == .wifi {
+                if metadata.connectionType == .wifi {
+                    HStack(spacing: 12) {
                         if let band = metadata.wifiBand {
                             Label(band.rawValue, systemImage: "antenna.radiowaves.left.and.right")
                                 .font(.caption)
@@ -166,12 +166,6 @@ struct ShareableResultCardView: View {
                                 .font(.caption)
                                 .foregroundColor(signalColor(metadata))
                         }
-                    }
-
-                    if let publicIP = metadata.publicIPAddress {
-                        Label(publicIP, systemImage: "globe")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                     }
                 }
             }

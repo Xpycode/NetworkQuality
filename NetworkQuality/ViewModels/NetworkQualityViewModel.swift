@@ -123,7 +123,7 @@ class NetworkQualityViewModel: ObservableObject {
     }
 
     func exportResultsCSV() -> String {
-        var csv = "Timestamp,Download (Mbps),Upload (Mbps),Responsiveness (RPM),Latency (ms),Interface,Connection Type,Local IP,Public IP,WiFi SSID,WiFi Band,WiFi Channel,Signal Quality,Signal (dBm),Link Speed (Mbps)\n"
+        var csv = "Timestamp,Download (Mbps),Upload (Mbps),Responsiveness (RPM),Latency (ms),Interface,Connection Type,WiFi SSID,WiFi Band,WiFi Channel,Signal Quality,Signal (dBm),Link Speed (Mbps)\n"
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -155,11 +155,9 @@ class NetworkQualityViewModel: ObservableObject {
             // Interface - escape in case of unusual interface names
             row.append(escapeCSV(result.interfaceName ?? ""))
 
-            // Network metadata - escape all string fields
+            // Network metadata - escape all string fields (excluding IPs for privacy)
             if let metadata = result.networkMetadata {
                 row.append(escapeCSV(metadata.connectionType.rawValue))
-                row.append(escapeCSV(metadata.localIPAddress ?? ""))
-                row.append(escapeCSV(metadata.publicIPAddress ?? ""))
                 row.append(escapeCSV(metadata.wifiSSID ?? ""))
                 row.append(escapeCSV(metadata.wifiBand?.rawValue ?? ""))
                 row.append(metadata.wifiChannel.map { "\($0)" } ?? "")
@@ -167,7 +165,7 @@ class NetworkQualityViewModel: ObservableObject {
                 row.append(metadata.wifiRSSI.map { "\($0)" } ?? "")
                 row.append(metadata.wifiTxRate.map { String(format: "%.0f", $0) } ?? "")
             } else {
-                row.append(contentsOf: ["", "", "", "", "", "", "", "", ""])
+                row.append(contentsOf: ["", "", "", "", "", "", ""])
             }
 
             csv += row.joined(separator: ",") + "\n"
@@ -186,7 +184,7 @@ class NetworkQualityViewModel: ObservableObject {
     }
 
     func exportSingleResultCSV(_ result: NetworkQualityResult) -> String {
-        var csv = "Timestamp,Download (Mbps),Upload (Mbps),Responsiveness (RPM),Latency (ms),Interface,Connection Type,Local IP,Public IP,WiFi SSID,WiFi Band,WiFi Channel,Signal Quality,Signal (dBm),Link Speed (Mbps)\n"
+        var csv = "Timestamp,Download (Mbps),Upload (Mbps),Responsiveness (RPM),Latency (ms),Interface,Connection Type,WiFi SSID,WiFi Band,WiFi Channel,Signal Quality,Signal (dBm),Link Speed (Mbps)\n"
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -199,10 +197,9 @@ class NetworkQualityViewModel: ObservableObject {
         row.append(result.baseRtt.map { String(format: "%.1f", $0) } ?? "")
         row.append(escapeCSV(result.interfaceName ?? ""))
 
+        // Network metadata (excluding IPs for privacy)
         if let metadata = result.networkMetadata {
             row.append(escapeCSV(metadata.connectionType.rawValue))
-            row.append(escapeCSV(metadata.localIPAddress ?? ""))
-            row.append(escapeCSV(metadata.publicIPAddress ?? ""))
             row.append(escapeCSV(metadata.wifiSSID ?? ""))
             row.append(escapeCSV(metadata.wifiBand?.rawValue ?? ""))
             row.append(metadata.wifiChannel.map { "\($0)" } ?? "")
@@ -210,7 +207,7 @@ class NetworkQualityViewModel: ObservableObject {
             row.append(metadata.wifiRSSI.map { "\($0)" } ?? "")
             row.append(metadata.wifiTxRate.map { String(format: "%.0f", $0) } ?? "")
         } else {
-            row.append(contentsOf: ["", "", "", "", "", "", "", "", ""])
+            row.append(contentsOf: ["", "", "", "", "", "", ""])
         }
 
         csv += row.joined(separator: ",") + "\n"

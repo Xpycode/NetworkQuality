@@ -21,6 +21,67 @@ struct NetworkMetadata: Codable, Equatable {
     let wifiTxRate: Double?    // Link speed in Mbps
     let wifiSecurity: WiFiSecurity?
 
+    // Exclude IP addresses from JSON encoding for privacy
+    enum CodingKeys: String, CodingKey {
+        case connectionType
+        case interfaceName
+        case wifiSSID
+        case wifiBSSID
+        case wifiRSSI
+        case wifiNoise
+        case wifiChannel
+        case wifiBand
+        case wifiTxRate
+        case wifiSecurity
+        // localIPAddress and publicIPAddress intentionally excluded
+    }
+
+    // Custom init for decoding (IPs will be nil when decoded)
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        connectionType = try container.decode(ConnectionType.self, forKey: .connectionType)
+        interfaceName = try container.decode(String.self, forKey: .interfaceName)
+        localIPAddress = nil
+        publicIPAddress = nil
+        wifiSSID = try container.decodeIfPresent(String.self, forKey: .wifiSSID)
+        wifiBSSID = try container.decodeIfPresent(String.self, forKey: .wifiBSSID)
+        wifiRSSI = try container.decodeIfPresent(Int.self, forKey: .wifiRSSI)
+        wifiNoise = try container.decodeIfPresent(Int.self, forKey: .wifiNoise)
+        wifiChannel = try container.decodeIfPresent(Int.self, forKey: .wifiChannel)
+        wifiBand = try container.decodeIfPresent(WiFiBand.self, forKey: .wifiBand)
+        wifiTxRate = try container.decodeIfPresent(Double.self, forKey: .wifiTxRate)
+        wifiSecurity = try container.decodeIfPresent(WiFiSecurity.self, forKey: .wifiSecurity)
+    }
+
+    // Memberwise init for creating instances
+    init(
+        connectionType: ConnectionType,
+        interfaceName: String,
+        localIPAddress: String?,
+        publicIPAddress: String?,
+        wifiSSID: String?,
+        wifiBSSID: String?,
+        wifiRSSI: Int?,
+        wifiNoise: Int?,
+        wifiChannel: Int?,
+        wifiBand: WiFiBand?,
+        wifiTxRate: Double?,
+        wifiSecurity: WiFiSecurity?
+    ) {
+        self.connectionType = connectionType
+        self.interfaceName = interfaceName
+        self.localIPAddress = localIPAddress
+        self.publicIPAddress = publicIPAddress
+        self.wifiSSID = wifiSSID
+        self.wifiBSSID = wifiBSSID
+        self.wifiRSSI = wifiRSSI
+        self.wifiNoise = wifiNoise
+        self.wifiChannel = wifiChannel
+        self.wifiBand = wifiBand
+        self.wifiTxRate = wifiTxRate
+        self.wifiSecurity = wifiSecurity
+    }
+
     enum ConnectionType: String, Codable {
         case wifi = "WiFi"
         case ethernet = "Ethernet"
