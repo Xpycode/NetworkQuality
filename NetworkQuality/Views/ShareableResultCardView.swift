@@ -153,8 +153,8 @@ struct ShareableResultCardView: View {
                     }
                 }
 
-                if metadata.connectionType == .wifi {
-                    HStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    if metadata.connectionType == .wifi {
                         if let band = metadata.wifiBand {
                             Label(band.rawValue, systemImage: "antenna.radiowaves.left.and.right")
                                 .font(.caption)
@@ -166,6 +166,12 @@ struct ShareableResultCardView: View {
                                 .font(.caption)
                                 .foregroundColor(signalColor(metadata))
                         }
+                    }
+
+                    if let publicIP = metadata.publicIPAddress {
+                        Label(publicIP, systemImage: "globe")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
             }
@@ -475,6 +481,7 @@ struct ShareButtonView: NSViewRepresentable {
             connectionType: .wifi,
             interfaceName: "en0",
             localIPAddress: "192.168.1.100",
+            publicIPAddress: "203.0.113.42",
             wifiSSID: "Home Network",
             wifiBSSID: nil,
             wifiRSSI: -52,

@@ -9,6 +9,7 @@ struct NetworkMetadata: Codable, Equatable {
     let connectionType: ConnectionType
     let interfaceName: String
     let localIPAddress: String?
+    let publicIPAddress: String?
 
     // WiFi-specific
     let wifiSSID: String?
@@ -159,6 +160,7 @@ class NetworkInfoService {
             connectionType: connectionType,
             interfaceName: interfaceName,
             localIPAddress: localIP,
+            publicIPAddress: nil,  // Fetched asynchronously
             wifiSSID: wifiSSID,
             wifiBSSID: wifiBSSID,
             wifiRSSI: wifiRSSI,
@@ -167,6 +169,50 @@ class NetworkInfoService {
             wifiBand: wifiBand,
             wifiTxRate: wifiTxRate,
             wifiSecurity: wifiSecurity
+        )
+    }
+
+    /// Fetch the public IP address using ipinfo.io
+    func fetchPublicIP() async -> String? {
+        guard let url = URL(string: "https://ipinfo.io/json") else {
+            return nil
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return nil
+            }
+
+            // Parse the response to extract just the IP
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let ip = json["ip"] as? String {
+                return ip
+            }
+        } catch {
+            // Silently fail - public IP is optional
+        }
+
+        return nil
+    }
+
+    /// Create a copy of metadata with the public IP address filled in
+    func metadataWithPublicIP(_ metadata: NetworkMetadata, publicIP: String?) -> NetworkMetadata {
+        return NetworkMetadata(
+            connectionType: metadata.connectionType,
+            interfaceName: metadata.interfaceName,
+            localIPAddress: metadata.localIPAddress,
+            publicIPAddress: publicIP,
+            wifiSSID: metadata.wifiSSID,
+            wifiBSSID: metadata.wifiBSSID,
+            wifiRSSI: metadata.wifiRSSI,
+            wifiNoise: metadata.wifiNoise,
+            wifiChannel: metadata.wifiChannel,
+            wifiBand: metadata.wifiBand,
+            wifiTxRate: metadata.wifiTxRate,
+            wifiSecurity: metadata.wifiSecurity
         )
     }
 

@@ -443,9 +443,14 @@ struct NetworkMetadataSection: View {
                 // Interface
                 MetadataItem(label: "Interface", value: metadata.interfaceName)
 
-                // IP Address
+                // Local IP Address
                 if let ip = metadata.localIPAddress {
-                    MetadataItem(label: "IP Address", value: ip)
+                    MetadataItem(label: "Local IP", value: ip)
+                }
+
+                // Public IP Address
+                if let publicIP = metadata.publicIPAddress {
+                    MetadataItem(label: "Public IP", value: publicIP)
                 }
 
                 // WiFi-specific info

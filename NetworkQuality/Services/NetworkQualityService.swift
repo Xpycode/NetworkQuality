@@ -98,6 +98,9 @@ class NetworkQualityService: ObservableObject {
         let runnerConfig = RunnerConfiguration(from: config)
 
         do {
+            // Start fetching public IP in parallel with the test
+            async let publicIPTask = NetworkInfoService.shared.fetchPublicIP()
+
             let result = try await runner.runTest(config: runnerConfig) { [weak self] progressUpdate in
                 Task { @MainActor [weak self] in
                     self?.handleProgressUpdate(progressUpdate)
@@ -107,7 +110,11 @@ class NetworkQualityService: ObservableObject {
             progress = "Test completed"
 
             // Capture network metadata at time of test
-            let networkMetadata = NetworkInfoService.shared.getCurrentMetadata()
+            var networkMetadata = NetworkInfoService.shared.getCurrentMetadata()
+
+            // Wait for public IP and update metadata
+            let publicIP = await publicIPTask
+            networkMetadata = NetworkInfoService.shared.metadataWithPublicIP(networkMetadata, publicIP: publicIP)
 
             return NetworkQualityResult(
                 downloadMbps: result.downloadMbps,

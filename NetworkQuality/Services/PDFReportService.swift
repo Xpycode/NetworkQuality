@@ -818,6 +818,7 @@ struct PDFReportView: View {
             connectionType: .wifi,
             interfaceName: "en0",
             localIPAddress: "192.168.1.100",
+            publicIPAddress: "203.0.113.42",
             wifiSSID: "Home Network",
             wifiBSSID: nil,
             wifiRSSI: -52,
