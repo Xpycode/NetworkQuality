@@ -142,9 +142,13 @@ actor GeoIPRateLimiter {
 
 @MainActor
 class GeoIPService: ObservableObject {
+    static let shared = GeoIPService()
+
     @Published var geoHops: [GeoTracerouteHop] = []
     @Published var isLoading = false
     @Published var error: String?
+    @Published var publicIP: GeoIPLocation?
+    @Published var isLoadingPublicIP = false
 
     // Using ip-api.com with HTTPS (Pro endpoint)
     // Note: Free tier only supports HTTP. For production, consider:
@@ -156,6 +160,64 @@ class GeoIPService: ObservableObject {
     private let baseURL = "https://ipinfo.io"
     private var cache: [String: GeoIPLocation] = [:]
     private let rateLimiter = GeoIPRateLimiter(maxRequestsPerMinute: 45)
+    private var publicIPCacheTime: Date?
+    private let publicIPCacheDuration: TimeInterval = 300  // Cache for 5 minutes
+
+    /// Fetch the user's public IP address and geolocation
+    /// Uses caching to avoid excessive API calls
+    func fetchPublicIP(forceRefresh: Bool = false) async {
+        // Check cache validity
+        if !forceRefresh,
+           let cachedIP = publicIP,
+           let cacheTime = publicIPCacheTime,
+           Date().timeIntervalSince(cacheTime) < publicIPCacheDuration {
+            NetworkQualityLogger.geoIP.debug("Using cached public IP: \(cachedIP.ip)")
+            return
+        }
+
+        isLoadingPublicIP = true
+        error = nil
+
+        do {
+            // Wait for rate limiter
+            _ = await rateLimiter.waitForSlot()
+
+            guard let url = URL(string: "\(baseURL)/json") else {
+                throw GeoIPError.invalidURL
+            }
+
+            NetworkQualityLogger.geoIP.info("Fetching public IP from ipinfo.io")
+
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw GeoIPError.requestFailed
+            }
+
+            switch httpResponse.statusCode {
+            case 200:
+                break
+            case 429:
+                throw GeoIPError.rateLimited
+            default:
+                throw GeoIPError.requestFailed
+            }
+
+            let ipinfoResponse = try JSONDecoder().decode(IPInfoResponse.self, from: data)
+            let location = ipinfoResponse.toGeoIPLocation()
+
+            publicIP = location
+            publicIPCacheTime = Date()
+            cache[location.ip] = location  // Also add to general cache
+
+            NetworkQualityLogger.geoIP.info("Public IP fetched: \(location.ip)")
+        } catch {
+            self.error = error.localizedDescription
+            NetworkQualityLogger.geoIP.error("Failed to fetch public IP: \(error.localizedDescription)")
+        }
+
+        isLoadingPublicIP = false
+    }
 
     /// Look up geolocation for all hops from a traceroute
     func lookupHops(_ hops: [TracerouteHop]) async {
@@ -237,6 +299,8 @@ class GeoIPService: ObservableObject {
     /// Clear the cache
     func clearCache() {
         cache.removeAll()
+        publicIP = nil
+        publicIPCacheTime = nil
         Task {
             await rateLimiter.reset()
         }

@@ -420,6 +420,7 @@ struct HistoryDetailSheet: View {
 struct NetworkMetadataSection: View {
     let metadata: NetworkMetadata
     @ObservedObject private var locationManager = LocationPermissionManager.shared
+    @ObservedObject private var geoIPService = GeoIPService.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -443,9 +444,43 @@ struct NetworkMetadataSection: View {
                 // Interface
                 MetadataItem(label: "Interface", value: metadata.interfaceName)
 
-                // IP Address
+                // Local IP Address
                 if let ip = metadata.localIPAddress {
-                    MetadataItem(label: "IP Address", value: ip)
+                    MetadataItem(label: "Local IP", value: ip)
+                }
+
+                // Public IP Address
+                if geoIPService.isLoadingPublicIP {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Public IP")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                            Text("Fetching...")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else if let publicIP = geoIPService.publicIP {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Public IP")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            Text(publicIP.ip)
+                                .font(.subheadline)
+                            let location = compactLocation(publicIP)
+                            if !location.isEmpty {
+                                Text("(\(location))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 // WiFi-specific info
@@ -495,6 +530,24 @@ struct NetworkMetadataSection: View {
         .padding()
         .background(Color.blue.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .onAppear {
+            // Fetch public IP when the section appears
+            Task {
+                await geoIPService.fetchPublicIP()
+            }
+        }
+    }
+
+    /// Returns a compact location string (city, country code)
+    private func compactLocation(_ location: GeoIPLocation) -> String {
+        var parts: [String] = []
+        if let city = location.city {
+            parts.append(city)
+        }
+        if let countryCode = location.countryCode {
+            parts.append(countryCode)
+        }
+        return parts.joined(separator: ", ")
     }
 
     private func signalColor(_ rssi: Int) -> Color {
