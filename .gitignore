@@ -25,3 +25,15 @@ xcuserdata/
 Packages/
 Package.pins
 Package.resolved
+
+# Tool caches
+.fastembed_cache/
+
+# Release artifacts (DMGs, built .app bundles)
+APP/
+
+# Design assets (kept out of source git)
+02_Design/
+
+# Execution planning (ephemeral)
+PLAN.md
