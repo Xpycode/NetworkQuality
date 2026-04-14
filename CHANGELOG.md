@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-04-14
+
+### v1.0.2: Launch Performance
+
+#### Performance
+- **Cold launch dropped from 3–5s to ~197ms on M4 Pro** (≈25× faster)
+  - Removed a `DispatchSemaphore.wait(timeout: 5)` that blocked the MainActor during `NetworkQualityViewModel.init()`. The semaphore waited on a `Task` that inherited MainActor isolation and could never make progress while main was blocked, so every launch hit the 5-second timeout before falling back to default interfaces.
+  - Network interfaces are now loaded lazily via SwiftUI's `.task` modifier when the Settings view appears, using structured concurrency with automatic cancellation.
+
+#### Internal
+- Project reorganized into numbered folders (`01_Project/`, `03_Screenshots/`, `docs/`) to match the Directions workflow structure.
+
+---
+
 ## 2025-12-03
 
 ### UI-8: Multi-Server Testing
