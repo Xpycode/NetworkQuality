@@ -9,13 +9,13 @@
 
 ## Current Position
 - **Phase:** done
-- **Focus:** v1.0.1 shipped - maintenance mode, monitoring for issues
+- **Focus:** v1.0.2 shipped — launch perf fix landed (3–5s → ~197ms on M4 Pro), monitoring
 - **Status:** ready
-- **Last updated:** 2026-02-02
+- **Last updated:** 2026-04-14
 
 ## Progress
 ```
-[####################] 100% - v1.0.1 released, all core features complete
+[####################] 100% - v1.0.2 released, all core features complete
 ```
 
 | Phase | Status | Notes |
@@ -23,8 +23,8 @@
 | Discovery | done | — |
 | Planning | done | — |
 | Implementation | done | All features shipped |
-| Polish | done | v1.0.1 released Jan 6, 2026 |
-| Shipping | **active** | Available on GitHub Releases |
+| Polish | done | Launch perf fix in v1.0.2 (Apr 14, 2026) |
+| Shipping | **active** | v1.0.2 on GitHub Releases |
 
 ## Tech Stack
 - Swift 5.0, SwiftUI
@@ -33,6 +33,7 @@
 - Cloudflare/M-Lab APIs for multi-server testing
 
 ## Active Decisions
+- 2026-04-14: Lazy interface loading via SwiftUI `.task` on SettingsView — fixes 5s launch stall caused by DispatchSemaphore.wait on MainActor (see [decisions.md](decisions.md))
 - 2025-12-03: Multi-server testing (Apple, Cloudflare, M-Lab) for comprehensive results
 - 2025-12-02: Built-in network diagnostics (ping, traceroute, DNS) for all-in-one tool
 - 2025-12-01: Native macOS app using SwiftUI for modern UI
