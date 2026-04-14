@@ -41,21 +41,7 @@ class NetworkQualityService: ObservableObject {
     private var verboseBuffer = RingBuffer<String>(capacity: NetworkQualityConstants.verboseOutputMaxLines)
     private var testStartTime: Date?
 
-    func getAvailableInterfaces() -> [String] {
-        // Synchronous wrapper for compatibility - prefer async version
-        let semaphore = DispatchSemaphore(value: 0)
-        var result: [String] = ["en0", "en1", "pdp_ip0"]
-
-        Task {
-            result = await AppleNetworkQualityRunner.getAvailableInterfaces()
-            semaphore.signal()
-        }
-
-        _ = semaphore.wait(timeout: .now() + 5)
-        return result
-    }
-
-    func getAvailableInterfacesAsync() async -> [String] {
+    func getAvailableInterfaces() async -> [String] {
         await AppleNetworkQualityRunner.getAvailableInterfaces()
     }
 

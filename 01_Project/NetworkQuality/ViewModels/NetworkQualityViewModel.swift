@@ -36,20 +36,16 @@ class NetworkQualityViewModel: ObservableObject {
     }
 
     init() {
-        // Forward service's objectWillChange to this ViewModel so UI updates
-        // Throttle to prevent AttributeGraph cycle errors from rapid updates
         service.objectWillChange
             .throttle(for: .milliseconds(100), scheduler: RunLoop.main, latest: true)
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
-
-        loadInterfaces()
     }
 
-    func loadInterfaces() {
-        availableInterfaces = service.getAvailableInterfaces()
+    func loadInterfaces() async {
+        availableInterfaces = await service.getAvailableInterfaces()
     }
 
     func runTest() async {

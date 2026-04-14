@@ -66,6 +66,7 @@ struct ContentView: View {
                         config: $viewModel.testConfiguration,
                         availableInterfaces: viewModel.availableInterfaces
                     )
+                    .task { await viewModel.loadInterfaces() }
                 case 4:
                     NetworkToolsView(historyManager: historyManager)
                 case 5:
