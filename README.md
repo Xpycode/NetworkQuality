@@ -5,11 +5,11 @@ A native macOS application for comprehensive network performance testing and dia
 ![macOS 14.0+](https://img.shields.io/badge/macOS-14.0+-blue)
 ![Swift 5.0](https://img.shields.io/badge/Swift-5.0-orange)
 ![license MIT](https://img.shields.io/badge/license-MIT-green)
-![version 1.0.1](https://img.shields.io/badge/version-1.0.1-yellow)
-[![Download v1.0.1](https://img.shields.io/badge/Download-v1.0.1-brightgreen)](https://github.com/Xpycode/NetworkQuality/releases/download/v1.0.1/NetworkQuality-1.0.1.dmg)
+![version 1.0.2](https://img.shields.io/badge/version-1.0.2-yellow)
+[![Download v1.0.2](https://img.shields.io/badge/Download-v1.0.2-brightgreen)](https://github.com/Xpycode/NetworkQuality/releases/download/v1.0.2/NetworkQuality-1.0.2.dmg)
 ![downloads](https://img.shields.io/github/downloads/Xpycode/NetworkQuality/total)
 
-![NetworkQuality Speed Test Result](screenshots/NetworkQaulity-03-Test-MBps-Result.png)
+![NetworkQuality Speed Test Result](03_Screenshots/NetworkQaulity-03-Test-MBps-Result.png)
 
 ## Features
 
@@ -18,8 +18,8 @@ A native macOS application for comprehensive network performance testing and dia
 Run Apple's built-in network quality test with real-time progress, detailed results, and performance insights.
 
 <p align="center">
-<img src="screenshots/NetworkQaulity-02-Test-MBps.png" width="45%" alt="Speed Test Running">
-<img src="screenshots/NetworkQaulity-04-Test-MBps-Insights1.png" width="45%" alt="Performance Insights">
+<img src="03_Screenshots/NetworkQaulity-02-Test-MBps.png" width="45%" alt="Speed Test Running">
+<img src="03_Screenshots/NetworkQaulity-04-Test-MBps-Insights1.png" width="45%" alt="Performance Insights">
 </p>
 
 ### Multi-Server Comparison
@@ -27,8 +27,8 @@ Run Apple's built-in network quality test with real-time progress, detailed resu
 Compare results across multiple providers — Apple, Cloudflare, and M-Lab — to get a complete picture of your network performance.
 
 <p align="center">
-<img src="screenshots/NetworkQaulity-14-MultiServer.png" width="45%" alt="Multi-Server Test">
-<img src="screenshots/NetworkQaulity-17-MultiServerResults1.png" width="45%" alt="Multi-Server Results">
+<img src="03_Screenshots/NetworkQaulity-14-MultiServer.png" width="45%" alt="Multi-Server Test">
+<img src="03_Screenshots/NetworkQaulity-17-MultiServerResults1.png" width="45%" alt="Multi-Server Results">
 </p>
 
 ### Network Diagnostics
@@ -36,8 +36,8 @@ Compare results across multiple providers — Apple, Cloudflare, and M-Lab — t
 Built-in tools for ping, traceroute, and DNS lookups.
 
 <p align="center">
-<img src="screenshots/NetworkQaulity-10-DiagnosticsPing.png" width="45%" alt="Ping">
-<img src="screenshots/NetworkQaulity-12-DiagnosticsDNS.png" width="45%" alt="DNS Lookup">
+<img src="03_Screenshots/NetworkQaulity-10-DiagnosticsPing.png" width="45%" alt="Ping">
+<img src="03_Screenshots/NetworkQaulity-12-DiagnosticsDNS.png" width="45%" alt="DNS Lookup">
 </p>
 
 ### Route Mapping
@@ -45,7 +45,7 @@ Built-in tools for ping, traceroute, and DNS lookups.
 Visualize your network path with geographic traceroute mapping.
 
 <p align="center">
-<img src="screenshots/NetworkQaulity-20-RouteMap.png" width="70%" alt="Route Map">
+<img src="03_Screenshots/NetworkQaulity-20-RouteMap.png" width="70%" alt="Route Map">
 </p>
 
 ### VPN Comparison
@@ -53,8 +53,8 @@ Visualize your network path with geographic traceroute mapping.
 Detect potential ISP throttling by comparing speeds with and without VPN.
 
 <p align="center">
-<img src="screenshots/NetworkQaulity-24-VPNcomparison.png" width="45%" alt="VPN Comparison Start">
-<img src="screenshots/NetworkQaulity-29-VPNcomparisonRESULTS.png" width="45%" alt="VPN Comparison Results">
+<img src="03_Screenshots/NetworkQaulity-24-VPNcomparison.png" width="45%" alt="VPN Comparison Start">
+<img src="03_Screenshots/NetworkQaulity-29-VPNcomparisonRESULTS.png" width="45%" alt="VPN Comparison Results">
 </p>
 
 ### LAN Speed Test
@@ -62,8 +62,8 @@ Detect potential ISP throttling by comparing speeds with and without VPN.
 Measure local network performance between devices on your network.
 
 <p align="center">
-<img src="screenshots/NetworkQaulity-22-LANspeedTest1.png" width="45%" alt="LAN Speed Test">
-<img src="screenshots/NetworkQaulity-23-LANspeedTest2.png" width="45%" alt="LAN Speed Results">
+<img src="03_Screenshots/NetworkQaulity-22-LANspeedTest1.png" width="45%" alt="LAN Speed Test">
+<img src="03_Screenshots/NetworkQaulity-23-LANspeedTest2.png" width="45%" alt="LAN Speed Results">
 </p>
 
 ### History & Export
@@ -71,8 +71,8 @@ Measure local network performance between devices on your network.
 Track results over time. Export to PNG, CSV, JSON, or PDF.
 
 <p align="center">
-<img src="screenshots/NetworkQaulity-07-Test-MBps-History.png" width="45%" alt="History">
-<img src="screenshots/NetworkQaulity-08-Test-MBps-HistorySharePNG.png" width="45%" alt="Share as Image">
+<img src="03_Screenshots/NetworkQaulity-07-Test-MBps-History.png" width="45%" alt="History">
+<img src="03_Screenshots/NetworkQaulity-08-Test-MBps-HistorySharePNG.png" width="45%" alt="Share as Image">
 </p>
 
 ## Requirements
@@ -82,7 +82,7 @@ Track results over time. Export to PNG, CSV, JSON, or PDF.
 
 ## Installation
 
-1. Download `NetworkQuality-1.0.1.dmg` from [Releases](../../releases)
+1. Download `NetworkQuality-1.0.2.dmg` from [Releases](../../releases)
 2. Open the DMG and drag NetworkQuality to Applications
 3. Launch from Applications folder
 
@@ -93,7 +93,7 @@ On first launch, macOS may ask to confirm opening an app from an identified deve
 ```bash
 git clone https://github.com/Xpycode/NetworkQuality.git
 cd NetworkQuality
-open NetworkQuality.xcodeproj
+open 01_Project/NetworkQuality.xcodeproj
 ```
 
 Build with Xcode 15 or later.
