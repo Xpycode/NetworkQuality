@@ -2,12 +2,16 @@ import SwiftUI
 
 @main
 struct NetworkQualityApp: App {
+    @State private var themeManager = ThemeManager.shared
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .frame(minWidth: 860, minHeight: 450)
+                .preferredColorScheme(.dark)
+                .accentColor(themeManager.accentColor)
         }
-        .windowStyle(.automatic)
+        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .newItem) { }

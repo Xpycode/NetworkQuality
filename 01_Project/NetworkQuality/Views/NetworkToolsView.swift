@@ -39,14 +39,14 @@ struct NetworkToolsView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Tool picker
-            Picker("Tool", selection: $selectedTool) {
-                Text("Ping").tag(0)
-                Text("Traceroute").tag(1)
-                Text("DNS Lookup").tag(2)
+            HStack(spacing: 2) {
+                Button("Ping") { selectedTool = 0 }
+                    .buttonStyle(FCPToolbarButtonStyle(isOn: selectedTool == 0))
+                Button("Traceroute") { selectedTool = 1 }
+                    .buttonStyle(FCPToolbarButtonStyle(isOn: selectedTool == 1))
+                Button("DNS Lookup") { selectedTool = 2 }
+                    .buttonStyle(FCPToolbarButtonStyle(isOn: selectedTool == 2))
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(maxWidth: 300)
             .padding()
 
             Divider()

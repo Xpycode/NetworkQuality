@@ -8,46 +8,46 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showExportSheet = false
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+    @AppStorage("showSidebar") private var showSidebar: Bool = true
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Static sidebar
-            List(selection: $selectedTab) {
-                Section("Test") {
-                    Label("Speed Test", systemImage: "speedometer")
-                        .tag(0)
-                    Label("Results", systemImage: "list.bullet.clipboard")
-                        .tag(1)
-                    Label("History", systemImage: "clock")
-                        .tag(2)
-                }
+        HSplitView {
+            if showSidebar {
+                List(selection: $selectedTab) {
+                    Section("Test") {
+                        Label("Speed Test", systemImage: "speedometer")
+                            .tag(0)
+                        Label("Results", systemImage: "list.bullet.clipboard")
+                            .tag(1)
+                        Label("History", systemImage: "clock")
+                            .tag(2)
+                    }
 
-                Section("Tools") {
-                    Label("Diagnostics", systemImage: "network")
-                        .tag(4)
-                    Label("Multi-Server", systemImage: "server.rack")
-                        .tag(5)
-                    Label("Route Map", systemImage: "map")
-                        .tag(6)
-                    Label("LAN Speed", systemImage: "wifi")
-                        .tag(9)
-                    Label("VPN Compare", systemImage: "network.badge.shield.half.filled")
-                        .tag(11)
-                }
+                    Section("Tools") {
+                        Label("Diagnostics", systemImage: "network")
+                            .tag(4)
+                        Label("Multi-Server", systemImage: "server.rack")
+                            .tag(5)
+                        Label("Route Map", systemImage: "map")
+                            .tag(6)
+                        Label("LAN Speed", systemImage: "wifi")
+                            .tag(9)
+                        Label("VPN Compare", systemImage: "network.badge.shield.half.filled")
+                            .tag(11)
+                    }
 
-                Section("History") {
-                    Label("Multi-Server", systemImage: "clock.arrow.2.circlepath")
-                        .tag(7)
-                    Label("Diagnostics", systemImage: "doc.text.magnifyingglass")
-                        .tag(8)
-                    Label("LAN Speed", systemImage: "clock.badge.checkmark")
-                        .tag(10)
+                    Section("History") {
+                        Label("Multi-Server", systemImage: "clock.arrow.2.circlepath")
+                            .tag(7)
+                        Label("Diagnostics", systemImage: "doc.text.magnifyingglass")
+                            .tag(8)
+                        Label("LAN Speed", systemImage: "clock.badge.checkmark")
+                            .tag(10)
+                    }
                 }
+                .listStyle(.sidebar)
+                .frame(minWidth: 180, idealWidth: 220, maxWidth: 320)
             }
-            .listStyle(.sidebar)
-            .frame(width: 200)
-
-            Divider()
 
             // Main content
             Group {
@@ -87,20 +87,10 @@ struct ContentView: View {
                     Text("Select an option")
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(minWidth: 500, maxWidth: .infinity, maxHeight: .infinity)
         }
-        .navigationTitle("Network Quality")
+        .autosaveSplitView(named: "NetworkQualityMainSplit")
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("Unit", selection: $speedUnitRaw) {
-                    ForEach(SpeedUnit.allCases, id: \.rawValue) { unit in
-                        Text(unit.label).tag(unit.rawValue)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 140)
-            }
-
             ToolbarItemGroup(placement: .primaryAction) {
                 // Show clear button for history tab
                 if selectedTab == 2 {
@@ -117,8 +107,24 @@ struct ContentView: View {
                     }
                     .disabled(viewModel.currentResult == nil)
                 }
+
+                // Speed unit toggle — two FCP buttons instead of segmented picker
+                // (segmented pickers render poorly under forced dark mode on macOS 26)
+                HStack(spacing: 2) {
+                    Button("Mbit/s") {
+                        speedUnitRaw = SpeedUnit.mbps.rawValue
+                    }
+                    .buttonStyle(FCPToolbarButtonStyle(isOn: speedUnitRaw == SpeedUnit.mbps.rawValue))
+
+                    Button("MB/s") {
+                        speedUnitRaw = SpeedUnit.mbytes.rawValue
+                    }
+                    .buttonStyle(FCPToolbarButtonStyle(isOn: speedUnitRaw == SpeedUnit.mbytes.rawValue))
+                }
             }
         }
+        .toolbarRole(.editor)
+        .toolbarBackground(.visible, for: .windowToolbar)
         .sheet(isPresented: $showExportSheet) {
             ExportSheet(viewModel: viewModel)
         }
@@ -144,12 +150,17 @@ struct SpeedTestView: View {
     var body: some View {
         VStack(spacing: 16) {
             // Test mode picker at top
-            Picker("", selection: $viewModel.testConfiguration.mode) {
-                Text("Parallel").tag(TestMode.parallel)
-                Text("Sequential").tag(TestMode.sequential)
+            HStack(spacing: 4) {
+                Button("Parallel") {
+                    viewModel.testConfiguration.mode = .parallel
+                }
+                .buttonStyle(FCPToolbarButtonStyle(isOn: viewModel.testConfiguration.mode == .parallel))
+
+                Button("Sequential") {
+                    viewModel.testConfiguration.mode = .sequential
+                }
+                .buttonStyle(FCPToolbarButtonStyle(isOn: viewModel.testConfiguration.mode == .sequential))
             }
-            .pickerStyle(.segmented)
-            .frame(width: 180)
             .disabled(viewModel.isRunning)
             .padding(.top, 12)
 

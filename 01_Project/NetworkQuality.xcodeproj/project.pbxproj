@@ -36,6 +36,10 @@
 		A11111110000000000000030 /* VPNComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000030 /* VPNComparisonView.swift */; };
 		A11111110000000000000031 /* NetworkToolsShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000031 /* NetworkToolsShareCardView.swift */; };
 		A11111110000000000000032 /* AppleNetworkQualityRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000032 /* AppleNetworkQualityRunner.swift */; };
+		A11111110000000000000033 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000033 /* Theme.swift */; };
+		A11111110000000000000034 /* FCPToolbarButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000034 /* FCPToolbarButtonStyle.swift */; };
+		A11111110000000000000035 /* PaneToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000035 /* PaneToggleButton.swift */; };
+		A11111110000000000000036 /* View+SplitViewAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000036 /* View+SplitViewAutosave.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -71,6 +75,10 @@
 		A10000000000000000000030 /* VPNComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNComparisonView.swift; sourceTree = "<group>"; };
 		A10000000000000000000031 /* NetworkToolsShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkToolsShareCardView.swift; sourceTree = "<group>"; };
 		A10000000000000000000032 /* AppleNetworkQualityRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleNetworkQualityRunner.swift; sourceTree = "<group>"; };
+		A10000000000000000000033 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		A10000000000000000000034 /* FCPToolbarButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FCPToolbarButtonStyle.swift; sourceTree = "<group>"; };
+		A10000000000000000000035 /* PaneToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneToggleButton.swift; sourceTree = "<group>"; };
+		A10000000000000000000036 /* View+SplitViewAutosave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+SplitViewAutosave.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +109,7 @@
 				A13000000000000000000004 /* Services */,
 				A13000000000000000000005 /* ViewModels */,
 				A13000000000000000000007 /* Views */,
+				A13000000000000000000008 /* Theme */,
 				A10000000000000000000003 /* Assets.xcassets */,
 				A10000000000000000000011 /* NetworkQuality.entitlements */,
 				A10000000000000000000023 /* Info.plist */,
@@ -168,6 +177,17 @@
 				A10000000000000000000031 /* NetworkToolsShareCardView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		A13000000000000000000008 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000033 /* Theme.swift */,
+				A10000000000000000000034 /* FCPToolbarButtonStyle.swift */,
+				A10000000000000000000035 /* PaneToggleButton.swift */,
+				A10000000000000000000036 /* View+SplitViewAutosave.swift */,
+			);
+			path = Theme;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -267,6 +287,10 @@
 				A11111110000000000000029 /* VPNComparisonService.swift in Sources */,
 				A11111110000000000000030 /* VPNComparisonView.swift in Sources */,
 				A11111110000000000000031 /* NetworkToolsShareCardView.swift in Sources */,
+				A11111110000000000000033 /* Theme.swift in Sources */,
+				A11111110000000000000034 /* FCPToolbarButtonStyle.swift in Sources */,
+				A11111110000000000000035 /* PaneToggleButton.swift in Sources */,
+				A11111110000000000000036 /* View+SplitViewAutosave.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

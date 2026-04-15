@@ -242,12 +242,13 @@ struct ProviderCard: View {
             // Mode indicator - fixed height for consistent card sizing
             Group {
                 if let binding = sequentialMode {
-                    Picker("", selection: binding) {
-                        Text("Parallel").tag(false)
-                        Text("Sequential").tag(true)
+                    HStack(spacing: 2) {
+                        Button("Parallel") { binding.wrappedValue = false }
+                            .buttonStyle(FCPToolbarButtonStyle(isOn: !binding.wrappedValue))
+                        Button("Sequential") { binding.wrappedValue = true }
+                            .buttonStyle(FCPToolbarButtonStyle(isOn: binding.wrappedValue))
                     }
-                    .pickerStyle(.segmented)
-                    .controlSize(.small)
+                    .font(.caption)
                 } else if isSequentialOnly {
                     Text("Sequential only")
                         .font(.caption2)

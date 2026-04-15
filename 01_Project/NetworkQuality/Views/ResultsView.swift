@@ -15,12 +15,12 @@ struct ResultsView: View {
             VStack(alignment: .leading, spacing: 20) {
                 if let result = result {
                     // Tab picker for Insights vs Raw Data
-                    Picker("View", selection: $selectedTab) {
-                        Text("Insights").tag(0)
-                        Text("Raw Data").tag(1)
+                    HStack(spacing: 2) {
+                        Button("Insights") { selectedTab = 0 }
+                            .buttonStyle(FCPToolbarButtonStyle(isOn: selectedTab == 0))
+                        Button("Raw Data") { selectedTab = 1 }
+                            .buttonStyle(FCPToolbarButtonStyle(isOn: selectedTab == 1))
                     }
-                    .pickerStyle(.segmented)
-                    .frame(width: 200)
 
                     if selectedTab == 0 {
                         // Insights Tab - Plain language explanations
