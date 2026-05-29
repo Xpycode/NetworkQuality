@@ -145,14 +145,7 @@ struct ShareableResultCardView: View {
                 HStack(spacing: 8) {
                     Text(metadata.connectionType.rawValue)
                         .font(.system(size: 14, weight: .medium))
-
-                    if let ssid = metadata.wifiSSID, !ssid.isEmpty {
-                        Text("•")
-                            .foregroundColor(.secondary)
-                        Text(ssid)
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                    }
+                    // Wi-Fi SSID intentionally omitted from shareable cards for privacy
                 }
 
                 if metadata.connectionType == .wifi {

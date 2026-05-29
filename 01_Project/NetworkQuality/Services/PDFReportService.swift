@@ -418,18 +418,8 @@ struct PDFReportView: View {
                         .font(.system(size: 12, weight: .medium))
                 }
 
-                // WiFi details
+                // WiFi details (SSID intentionally omitted from PDF reports for privacy)
                 if metadata.connectionType == .wifi {
-                    if let ssid = metadata.wifiSSID {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Network")
-                                .font(.system(size: 10))
-                                .foregroundColor(Color.gray.opacity(0.6))
-                            Text(ssid)
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                    }
-
                     if let band = metadata.wifiBand {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Band")

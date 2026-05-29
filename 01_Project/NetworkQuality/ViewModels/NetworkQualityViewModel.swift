@@ -119,7 +119,7 @@ class NetworkQualityViewModel: ObservableObject {
     }
 
     func exportResultsCSV() -> String {
-        var csv = "Timestamp,Download (Mbps),Upload (Mbps),Responsiveness (RPM),Latency (ms),Interface,Connection Type,WiFi SSID,WiFi Band,WiFi Channel,Signal Quality,Signal (dBm),Link Speed (Mbps)\n"
+        var csv = "Timestamp,Download (Mbps),Upload (Mbps),Responsiveness (RPM),Latency (ms),Interface,Connection Type,WiFi Band,WiFi Channel,Signal Quality,Signal (dBm),Link Speed (Mbps)\n"
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -154,14 +154,13 @@ class NetworkQualityViewModel: ObservableObject {
             // Network metadata - escape all string fields
             if let metadata = result.networkMetadata {
                 row.append(escapeCSV(metadata.connectionType.rawValue))
-                row.append(escapeCSV(metadata.wifiSSID ?? ""))
                 row.append(escapeCSV(metadata.wifiBand?.rawValue ?? ""))
                 row.append(metadata.wifiChannel.map { "\($0)" } ?? "")
                 row.append(escapeCSV(metadata.signalQuality ?? ""))
                 row.append(metadata.wifiRSSI.map { "\($0)" } ?? "")
                 row.append(metadata.wifiTxRate.map { String(format: "%.0f", $0) } ?? "")
             } else {
-                row.append(contentsOf: ["", "", "", "", "", "", ""])
+                row.append(contentsOf: ["", "", "", "", "", ""])
             }
 
             csv += row.joined(separator: ",") + "\n"
@@ -180,7 +179,7 @@ class NetworkQualityViewModel: ObservableObject {
     }
 
     func exportSingleResultCSV(_ result: NetworkQualityResult) -> String {
-        var csv = "Timestamp,Download (Mbps),Upload (Mbps),Responsiveness (RPM),Latency (ms),Interface,Connection Type,WiFi SSID,WiFi Band,WiFi Channel,Signal Quality,Signal (dBm),Link Speed (Mbps)\n"
+        var csv = "Timestamp,Download (Mbps),Upload (Mbps),Responsiveness (RPM),Latency (ms),Interface,Connection Type,WiFi Band,WiFi Channel,Signal Quality,Signal (dBm),Link Speed (Mbps)\n"
 
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"

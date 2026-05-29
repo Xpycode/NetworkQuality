@@ -29,6 +29,27 @@ struct NetworkMetadata: Codable, Equatable {
     let wifiTxRate: Double?    // Link speed in Mbps
     let wifiSecurity: WiFiSecurity?
 
+    /// Keys that are encoded/decoded. Identifying network fields are deliberately
+    /// omitted so they are never written to disk (history) or to exports (JSON).
+    /// They remain available in-memory for live/current-session display only.
+    /// Omitted for privacy: localIPAddress, localIPv6Address, gatewayIPAddress,
+    /// dnsServers, wifiSSID, wifiBSSID, proxyDescription.
+    enum CodingKeys: String, CodingKey {
+        case connectionType
+        case interfaceName
+        case subnetMask
+        case mtu
+        case vpnActive
+        case vpnName
+        case proxyActive
+        case wifiRSSI
+        case wifiNoise
+        case wifiChannel
+        case wifiBand
+        case wifiTxRate
+        case wifiSecurity
+    }
+
     enum ConnectionType: String, Codable {
         case wifi = "WiFi"
         case ethernet = "Ethernet"
@@ -85,6 +106,40 @@ struct NetworkMetadata: Codable, Equatable {
         case -70..<(-60): return "orange"
         default: return "red"
         }
+    }
+}
+
+// MARK: - Codable (privacy-aware)
+
+extension NetworkMetadata {
+    /// Decodes the persisted/exported keys and forces the omitted identifying
+    /// fields to nil. Defined in an extension so the synthesized memberwise
+    /// initializer (used by live capture) is preserved. `encode(to:)` is
+    /// synthesized from `CodingKeys`, so the omitted fields are never written.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        connectionType = try c.decode(ConnectionType.self, forKey: .connectionType)
+        interfaceName = try c.decode(String.self, forKey: .interfaceName)
+        subnetMask = try c.decodeIfPresent(String.self, forKey: .subnetMask)
+        mtu = try c.decodeIfPresent(Int.self, forKey: .mtu)
+        vpnActive = try c.decodeIfPresent(Bool.self, forKey: .vpnActive)
+        vpnName = try c.decodeIfPresent(String.self, forKey: .vpnName)
+        proxyActive = try c.decodeIfPresent(Bool.self, forKey: .proxyActive)
+        wifiRSSI = try c.decodeIfPresent(Int.self, forKey: .wifiRSSI)
+        wifiNoise = try c.decodeIfPresent(Int.self, forKey: .wifiNoise)
+        wifiChannel = try c.decodeIfPresent(Int.self, forKey: .wifiChannel)
+        wifiBand = try c.decodeIfPresent(WiFiBand.self, forKey: .wifiBand)
+        wifiTxRate = try c.decodeIfPresent(Double.self, forKey: .wifiTxRate)
+        wifiSecurity = try c.decodeIfPresent(WiFiSecurity.self, forKey: .wifiSecurity)
+
+        // Identifying network fields are never persisted or exported.
+        localIPAddress = nil
+        localIPv6Address = nil
+        gatewayIPAddress = nil
+        dnsServers = nil
+        wifiSSID = nil
+        wifiBSSID = nil
+        proxyDescription = nil
     }
 }
 
