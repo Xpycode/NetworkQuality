@@ -418,18 +418,8 @@ struct PDFReportView: View {
                         .font(.system(size: 12, weight: .medium))
                 }
 
-                // WiFi details
+                // WiFi details (SSID intentionally omitted from PDF reports for privacy)
                 if metadata.connectionType == .wifi {
-                    if let ssid = metadata.wifiSSID {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Network")
-                                .font(.system(size: 10))
-                                .foregroundColor(Color.gray.opacity(0.6))
-                            Text(ssid)
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                    }
-
                     if let band = metadata.wifiBand {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Band")
@@ -818,6 +808,15 @@ struct PDFReportView: View {
             connectionType: .wifi,
             interfaceName: "en0",
             localIPAddress: "192.168.1.100",
+            localIPv6Address: "2001:db8::1",
+            subnetMask: "255.255.255.0",
+            gatewayIPAddress: "192.168.1.1",
+            mtu: 1500,
+            dnsServers: ["8.8.8.8", "1.1.1.1"],
+            vpnActive: false,
+            vpnName: nil,
+            proxyActive: false,
+            proxyDescription: nil,
             wifiSSID: "Home Network",
             wifiBSSID: nil,
             wifiRSSI: -52,

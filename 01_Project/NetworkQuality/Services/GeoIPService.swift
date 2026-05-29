@@ -150,6 +150,43 @@ class GeoIPService: ObservableObject {
     @Published var publicIP: GeoIPLocation?
     @Published var isLoadingPublicIP = false
 
+    // Explicit per-stack public addresses, resolved via IPv4-only / IPv6-only
+    // endpoints. `publicIP` above is the primary egress address (v4 or v6) used
+    // for geolocation; these tell us which stacks are independently reachable.
+    @Published var publicIPv4: String?
+    @Published var publicIPv6: String?
+    @Published var isLoadingDualStack = false
+    private var hasCheckedDualStack = false
+    private var dualStackCacheTime: Date?
+
+    /// IPv4/IPv6 reachability of the current connection, for a dual-stack badge.
+    enum DualStackStatus {
+        case dualStack   // both IPv4 and IPv6 publicly reachable
+        case ipv4Only
+        case ipv6Only
+        case none        // checked, neither reachable
+        case unknown     // not checked yet
+
+        var label: String {
+            switch self {
+            case .dualStack: return "IPv4 + IPv6"
+            case .ipv4Only:  return "IPv4 only"
+            case .ipv6Only:  return "IPv6 only"
+            case .none:      return "No connectivity"
+            case .unknown:   return "Checking…"
+            }
+        }
+    }
+
+    var dualStackStatus: DualStackStatus {
+        switch (publicIPv4 != nil, publicIPv6 != nil) {
+        case (true, true):   return .dualStack
+        case (true, false):  return .ipv4Only
+        case (false, true):  return .ipv6Only
+        case (false, false): return hasCheckedDualStack ? .none : .unknown
+        }
+    }
+
     // Using ip-api.com with HTTPS (Pro endpoint)
     // Note: Free tier only supports HTTP. For production, consider:
     // - ip-api.com Pro (HTTPS): Requires API key
@@ -217,6 +254,54 @@ class GeoIPService: ObservableObject {
         }
 
         isLoadingPublicIP = false
+    }
+
+    /// Determine the public IPv4 and IPv6 addresses independently by querying
+    /// IPv4-only and IPv6-only endpoints in parallel. A stack that fails to
+    /// resolve/connect is treated as unreachable. Results feed `dualStackStatus`.
+    func fetchDualStack(forceRefresh: Bool = false) async {
+        if !forceRefresh,
+           let cacheTime = dualStackCacheTime,
+           Date().timeIntervalSince(cacheTime) < publicIPCacheDuration {
+            return
+        }
+
+        isLoadingDualStack = true
+
+        // ipify exposes A-only and AAAA-only hostnames, so DNS resolution alone
+        // forces each request onto the intended stack.
+        async let v4Task = fetchForcedIP(from: "https://api.ipify.org")
+        async let v6Task = fetchForcedIP(from: "https://api6.ipify.org")
+        let (v4, v6) = await (v4Task, v6Task)
+
+        publicIPv4 = v4
+        publicIPv6 = v6
+        hasCheckedDualStack = true
+        dualStackCacheTime = Date()
+        isLoadingDualStack = false
+
+        NetworkQualityLogger.geoIP.info("Dual-stack check — v4: \(v4 ?? "none"), v6: \(v6 ?? "none")")
+    }
+
+    /// Fetch a plain-text public IP from a stack-specific endpoint. Returns nil
+    /// on any failure (no connectivity on that stack, timeout, bad response).
+    private func fetchForcedIP(from urlString: String) async -> String? {
+        guard let url = URL(string: urlString) else { return nil }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                return nil
+            }
+            let ip = String(data: data, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let ip, isValidIP(ip) else { return nil }
+            return ip
+        } catch {
+            return nil
+        }
     }
 
     /// Look up geolocation for all hops from a traceroute
@@ -301,6 +386,10 @@ class GeoIPService: ObservableObject {
         cache.removeAll()
         publicIP = nil
         publicIPCacheTime = nil
+        publicIPv4 = nil
+        publicIPv6 = nil
+        hasCheckedDualStack = false
+        dualStackCacheTime = nil
         Task {
             await rateLimiter.reset()
         }

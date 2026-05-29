@@ -50,6 +50,8 @@ struct ShareableResultCardView: View {
         .frame(width: cardWidth, height: cardHeight)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+        .preferredColorScheme(.light)  // export artifact — stay light regardless of app mode
+        .environment(\.colorScheme, .light)
     }
 
     // MARK: - Header
@@ -143,14 +145,7 @@ struct ShareableResultCardView: View {
                 HStack(spacing: 8) {
                     Text(metadata.connectionType.rawValue)
                         .font(.system(size: 14, weight: .medium))
-
-                    if let ssid = metadata.wifiSSID, !ssid.isEmpty {
-                        Text("•")
-                            .foregroundColor(.secondary)
-                        Text(ssid)
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                    }
+                    // Wi-Fi SSID intentionally omitted from shareable cards for privacy
                 }
 
                 if metadata.connectionType == .wifi {
@@ -475,6 +470,15 @@ struct ShareButtonView: NSViewRepresentable {
             connectionType: .wifi,
             interfaceName: "en0",
             localIPAddress: "192.168.1.100",
+            localIPv6Address: "2001:db8::1",
+            subnetMask: "255.255.255.0",
+            gatewayIPAddress: "192.168.1.1",
+            mtu: 1500,
+            dnsServers: ["8.8.8.8", "1.1.1.1"],
+            vpnActive: false,
+            vpnName: nil,
+            proxyActive: false,
+            proxyDescription: nil,
             wifiSSID: "Home Network",
             wifiBSSID: nil,
             wifiRSSI: -52,

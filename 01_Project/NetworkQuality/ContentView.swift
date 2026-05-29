@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import Network
 
 struct ContentView: View {
     @StateObject private var viewModel = NetworkQualityViewModel()
@@ -91,25 +92,36 @@ struct ContentView: View {
         }
         .autosaveSplitView(named: "NetworkQualityMainSplit")
         .toolbar {
+            ToolbarItemGroup(placement: .navigation) {
+                PaneToggleButton(isOn: $showSidebar, iconName: "sidebar.leading", help: "Toggle Sidebar")
+            }
+
             ToolbarItemGroup(placement: .primaryAction) {
-                // Show clear button for history tab
+                // Clear button — history tab only
                 if selectedTab == 2 {
                     Button(action: { viewModel.clearHistory() }) {
-                        Label("Clear", systemImage: "trash")
+                        Image(systemName: "trash")
+                            .resizable().aspectRatio(contentMode: .fit)
+                            .frame(width: 16, height: 16)
                     }
+                    .help("Clear History")
                     .disabled(viewModel.results.isEmpty)
+                    .buttonStyle(FCPToolbarButtonStyle())
                 }
 
-                // Show Share button for Results tab
+                // Share button — results tab only
                 if selectedTab == 1 {
                     Button(action: { showExportSheet = true }) {
-                        Label("Share", systemImage: "square.and.arrow.up")
+                        Image(systemName: "square.and.arrow.up")
+                            .resizable().aspectRatio(contentMode: .fit)
+                            .frame(width: 16, height: 16)
                     }
+                    .help("Share Result")
                     .disabled(viewModel.currentResult == nil)
+                    .buttonStyle(FCPToolbarButtonStyle())
                 }
 
-                // Speed unit toggle — two FCP buttons instead of segmented picker
-                // (segmented pickers render poorly under forced dark mode on macOS 26)
+                // Speed unit toggle
                 HStack(spacing: 2) {
                     Button("Mbit/s") {
                         speedUnitRaw = SpeedUnit.mbps.rawValue
@@ -142,9 +154,22 @@ struct SpeedTestView: View {
     @ObservedObject var viewModel: NetworkQualityViewModel
     @Binding var selectedTab: Int
     @AppStorage("speedUnit") private var speedUnitRaw = SpeedUnit.mbps.rawValue
+    @AppStorage("showLiveConnectionInfo") private var showConnectionInfo = false
+    @StateObject private var connection = LiveConnectionModel()
+    @ObservedObject private var geoIPService = GeoIPService.shared
 
     private var speedUnit: SpeedUnit {
         SpeedUnit(rawValue: speedUnitRaw) ?? .mbps
+    }
+
+    /// Compact one-line summary shown on the collapsed disclosure row.
+    private var connectionSummary: String {
+        guard let md = connection.metadata else { return "Connection Info" }
+        var parts = [md.connectionType.rawValue]
+        if let ip = md.localIPAddress { parts.append("LAN \(ip)") }
+        if let publicIP = geoIPService.publicIP?.ip { parts.append("WAN \(publicIP)") }
+        if md.vpnActive == true { parts.append(md.vpnName ?? "VPN") }
+        return parts.joined(separator: " · ")
     }
 
     var body: some View {
@@ -251,6 +276,15 @@ struct SpeedTestView: View {
                         value: result.responsivenessValue.map { "\($0)" } ?? "N/A",
                         color: .purple
                     )
+                    if let rtt = result.baseRtt, let rpm = result.responsivenessValue, rpm > 0 {
+                        let grade = BufferbloatVisualization.BufferbloatGrade.grade(idleLatencyMs: rtt, rpm: rpm)
+                        StatPill(
+                            icon: "waveform.path.ecg",
+                            label: "Bufferbloat",
+                            value: grade.rawValue,
+                            color: grade.color
+                        )
+                    }
                 }
 
                 // Insight summary with link to details
@@ -271,9 +305,31 @@ struct SpeedTestView: View {
             }
 
             Spacer()
-                .frame(height: 8)
+
+            // Live connection info — populated on launch, before any test runs
+            DisclosureGroup(isExpanded: $showConnectionInfo) {
+                if let md = connection.metadata {
+                    ScrollView {
+                        NetworkMetadataSection(metadata: md)
+                    }
+                    .frame(maxHeight: 340)
+                    .padding(.top, 4)
+                }
+            } label: {
+                Label(connectionSummary, systemImage: connection.metadata?.connectionType.icon ?? "network")
+                    .font(.subheadline)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.currentResult?.id)
+        .onAppear {
+            connection.start()
+            // Resolve the external IP up front so it shows before the panel is expanded
+            Task { await geoIPService.fetchPublicIP() }
+            Task { await geoIPService.fetchDualStack() }
+        }
     }
 }
 
@@ -298,6 +354,42 @@ struct StatPill: View {
         .padding(.vertical, 6)
         .background(color.opacity(0.1))
         .clipShape(Capsule())
+    }
+}
+
+/// Captures local network metadata on appear and re-captures whenever the
+/// network path changes (Wi-Fi switch, VPN connect/disconnect, etc.), so the
+/// Connection Info panel is live and accurate before any test runs.
+@MainActor
+final class LiveConnectionModel: ObservableObject {
+    @Published var metadata: NetworkMetadata?
+
+    private let monitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "LiveConnectionModel.path")
+    private var started = false
+
+    func start() {
+        refresh()
+        guard !started else { return }
+        started = true
+        monitor.pathUpdateHandler = { [weak self] _ in
+            Task { @MainActor in
+                self?.refresh()
+                // The path changed (Wi-Fi switch, VPN toggle…) so the external IP
+                // may have changed too — bypass the 5-minute cache.
+                await GeoIPService.shared.fetchPublicIP(forceRefresh: true)
+                await GeoIPService.shared.fetchDualStack(forceRefresh: true)
+            }
+        }
+        monitor.start(queue: queue)
+    }
+
+    func refresh() {
+        metadata = NetworkInfoService.shared.getCurrentMetadata()
+    }
+
+    deinit {
+        monitor.cancel()
     }
 }
 
@@ -443,6 +535,9 @@ struct NetworkMetadataSection: View {
                 Text("Connection Info")
                     .font(.headline)
                 Spacer()
+                if geoIPService.dualStackStatus != .unknown {
+                    DualStackBadge(status: geoIPService.dualStackStatus)
+                }
                 Text(metadata.connectionType.rawValue)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -456,9 +551,42 @@ struct NetworkMetadataSection: View {
                 // Interface
                 MetadataItem(label: "Interface", value: metadata.interfaceName)
 
-                // Local IP Address
+                // Local IP Addresses
                 if let ip = metadata.localIPAddress {
-                    MetadataItem(label: "Local IP", value: ip)
+                    MetadataItem(label: "Local IPv4", value: ip)
+                }
+                if let ipv6 = metadata.localIPv6Address {
+                    MetadataItem(label: "Local IPv6", value: ipv6)
+                }
+
+                // LAN routing details
+                if let gateway = metadata.gatewayIPAddress {
+                    MetadataItem(label: "Gateway", value: gateway)
+                }
+                if let mask = metadata.subnetMask {
+                    MetadataItem(label: "Subnet Mask", value: mask)
+                }
+                if let mtu = metadata.mtu {
+                    MetadataItem(label: "MTU", value: "\(mtu)")
+                }
+                if let dns = metadata.dnsServers, !dns.isEmpty {
+                    MetadataItem(label: "DNS", value: dns.joined(separator: ", "))
+                }
+
+                // Privacy: VPN / proxy in use
+                if metadata.vpnActive == true {
+                    MetadataItem(
+                        label: "VPN",
+                        value: metadata.vpnName ?? "Active",
+                        valueColor: .blue
+                    )
+                }
+                if metadata.proxyActive == true {
+                    MetadataItem(
+                        label: "Proxy",
+                        value: metadata.proxyDescription ?? "Active",
+                        valueColor: .orange
+                    )
                 }
 
                 // Public IP Address
@@ -493,6 +621,15 @@ struct NetworkMetadataSection: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                // Surface whichever public stack the geo lookup above didn't show,
+                // so dual-stack connections display both addresses.
+                if let v6 = geoIPService.publicIPv6, v6 != geoIPService.publicIP?.ip {
+                    MetadataItem(label: "Public IPv6", value: v6)
+                }
+                if let v4 = geoIPService.publicIPv4, v4 != geoIPService.publicIP?.ip {
+                    MetadataItem(label: "Public IPv4", value: v4)
                 }
 
                 // WiFi-specific info
@@ -543,9 +680,12 @@ struct NetworkMetadataSection: View {
         .background(Color.blue.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .onAppear {
-            // Fetch public IP when the section appears
+            // Fetch public IP and dual-stack reachability when the section appears
             Task {
                 await geoIPService.fetchPublicIP()
+            }
+            Task {
+                await geoIPService.fetchDualStack()
             }
         }
     }
@@ -587,6 +727,30 @@ struct MetadataItem: View {
                 .foregroundStyle(valueColor)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Compact capsule indicating IPv4/IPv6 reachability of the current connection.
+struct DualStackBadge: View {
+    let status: GeoIPService.DualStackStatus
+
+    private var color: Color {
+        switch status {
+        case .dualStack: return .green
+        case .ipv4Only, .ipv6Only: return .orange
+        case .none: return .red
+        case .unknown: return .secondary
+        }
+    }
+
+    var body: some View {
+        Text(status.label)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.15))
+            .foregroundStyle(color)
+            .clipShape(Capsule())
     }
 }
 
