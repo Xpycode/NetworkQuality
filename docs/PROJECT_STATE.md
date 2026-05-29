@@ -9,13 +9,13 @@
 
 ## Current Position
 - **Phase:** polish
-- **Focus:** App Shell Standard migration — Phases 1–3 + picker sweep landed in v1.0.3 (committed, pushed, DMG built). Awaiting: user notarization + screenshots, then Phase 4–6 (remaining toolbar FCP styling + dark-mode audit of 477 color refs + verification).
+- **Focus:** Connection Info diagnostics shipped to `main` (PRs #1 & #2 merged): local+public IPv6, dual-stack badge, gateway/subnet/MTU/DNS, VPN/proxy detection, bufferbloat letter grade, live pre-test Connection Info panel, and privacy-scrubbed exports. App Shell history-toolbar icons + light-mode share cards also landed. Still pending from v1.0.3: notarization + fresh screenshots, dark-mode color audit (477 refs).
 - **Status:** in progress
-- **Last updated:** 2026-04-15
+- **Last updated:** 2026-05-29
 
 ## Progress
 ```
-[################----] 80% - v1.0.3 migration mid-flight (shell + pickers done, dark-mode audit pending)
+[#################---] 85% - v1.0.3 shell migration + new Connection Info diagnostics merged; dark-mode audit & notarization pending
 ```
 
 | Phase | Status | Notes |
@@ -33,6 +33,9 @@
 - Cloudflare/M-Lab APIs for multi-server testing
 
 ## Active Decisions
+- 2026-05-29: Connection Info diagnostics — capture local IPv4+IPv6 (skip loopback/link-local/`::`), independent public v4/v6 + dual-stack badge, gateway/subnet/MTU/DNS (native getifaddrs + SCDynamicStore, no subprocess), VPN/proxy detection. Gateway/DNS/MTU/VPN persisted in `NetworkMetadata`; public IP + badge are live-only.
+- 2026-05-29: Bufferbloat letter grade (A+…F) keyed on **absolute added latency (ms)** (Waveform/DSLReports scale), not the loaded/idle multiplier. Coexists with the older severity label.
+- 2026-05-29: Export privacy at the **Codable/model level** — `NetworkMetadata` CodingKeys omit IP/DNS/gateway/SSID/BSSID/proxy fields, so they never serialize to JSON export or on-disk history (decode as nil). Trade-off: historical results lose these after relaunch; live/current display unaffected.
 - 2026-04-15: Adopt App Shell Standard (Penumbra/CropBatch) — dark mode, HSplitView with autosave, FCPToolbarButtonStyle, `UIDesignRequiresCompatibility` in Info.plist. Default accent kept as Apple blue (not brand orange) to preserve legacy visual identity. Segmented pickers replaced with FCP-button HStacks across 4 sites (dark-mode white-on-white fix).
 - 2026-04-14: Lazy interface loading via SwiftUI `.task` on SettingsView — fixes 5s launch stall caused by DispatchSemaphore.wait on MainActor (see [decisions.md](decisions.md))
 - 2025-12-03: Multi-server testing (Apple, Cloudflare, M-Lab) for comprehensive results
@@ -43,7 +46,8 @@
 
 ## Blockers
 - Awaiting user: notarize `APP/NetworkQuality-v1.0.3/NetworkQuality-1.0.3.dmg`, capture fresh screenshots into `03_Screenshots/`.
-- SourceKit indexer shows stale "Cannot find X in scope" diagnostics for the new `Theme/` files — xcodebuild builds clean, cosmetic only. Xcode reindex clears it.
+- SourceKit indexer shows stale "Cannot find X in scope" diagnostics — xcodebuild builds clean, cosmetic only. Xcode reindex clears it.
+- This folder is a **Syncthing copy where `.git` doesn't survive sync**; if the local repo vanishes, re-attach with init → add origin → fetch → `reset --mixed origin/main` (see Claude memory `git-repo-recovery`).
 
 ---
 *Updated by Claude. Source of truth for project position.*
