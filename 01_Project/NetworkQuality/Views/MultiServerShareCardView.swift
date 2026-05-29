@@ -43,6 +43,8 @@ struct MultiServerShareCardView: View {
         .frame(width: cardWidth, height: cardHeight)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+        .preferredColorScheme(.light)  // export artifact — stay light regardless of app mode
+        .environment(\.colorScheme, .light)
     }
 
     // MARK: - Header

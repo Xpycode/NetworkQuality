@@ -45,9 +45,13 @@ struct MultiServerHistoryView: View {
                 Button(role: .destructive, action: {
                     historyManager.clearMultiServerHistory()
                 }) {
-                    Label("Clear History", systemImage: "trash")
+                    Image(systemName: "trash")
+                        .resizable().aspectRatio(contentMode: .fit)
+                        .frame(width: 16, height: 16)
                 }
+                .help("Clear History")
                 .disabled(historyManager.multiServerHistory.isEmpty)
+                .buttonStyle(FCPToolbarButtonStyle())
             }
         }
         .sheet(item: $selectedEntry) { entry in
@@ -450,9 +454,13 @@ struct NetworkToolsHistoryView: View {
                 Button(role: .destructive, action: {
                     historyManager.clearToolsHistory()
                 }) {
-                    Label("Clear History", systemImage: "trash")
+                    Image(systemName: "trash")
+                        .resizable().aspectRatio(contentMode: .fit)
+                        .frame(width: 16, height: 16)
                 }
+                .help("Clear History")
                 .disabled(historyManager.networkToolsHistory.isEmpty)
+                .buttonStyle(FCPToolbarButtonStyle())
             }
         }
         .sheet(item: $selectedEntry) { entry in
@@ -768,9 +776,13 @@ struct LANSpeedHistoryView: View {
                 Button(role: .destructive, action: {
                     historyManager.clearLANSpeedHistory()
                 }) {
-                    Label("Clear History", systemImage: "trash")
+                    Image(systemName: "trash")
+                        .resizable().aspectRatio(contentMode: .fit)
+                        .frame(width: 16, height: 16)
                 }
+                .help("Clear History")
                 .disabled(historyManager.lanSpeedHistory.isEmpty)
+                .buttonStyle(FCPToolbarButtonStyle())
             }
         }
     }

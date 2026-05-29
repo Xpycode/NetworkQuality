@@ -57,6 +57,8 @@ struct PingShareCardView: View {
         .frame(width: cardWidth, height: cardHeight)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+        .preferredColorScheme(.light)
+        .environment(\.colorScheme, .light)
     }
 
     private var headerSection: some View {
@@ -264,6 +266,8 @@ struct TracerouteShareCardView: View {
         .frame(width: cardWidth, height: cardHeight)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+        .preferredColorScheme(.light)
+        .environment(\.colorScheme, .light)
     }
 
     private var headerSection: some View {
@@ -447,6 +451,8 @@ struct DNSShareCardView: View {
         .frame(width: cardWidth, height: cardHeight)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+        .preferredColorScheme(.light)
+        .environment(\.colorScheme, .light)
     }
 
     private var headerSection: some View {
