@@ -8,7 +8,16 @@ import CoreLocation
 struct NetworkMetadata: Codable, Equatable {
     let connectionType: ConnectionType
     let interfaceName: String
-    let localIPAddress: String?
+    let localIPAddress: String?      // IPv4 address of the active interface
+    let localIPv6Address: String?    // Global/ULA IPv6 address (link-local excluded)
+    let subnetMask: String?          // IPv4 subnet mask of the active interface
+    let gatewayIPAddress: String?    // Default route (router) IP
+    let mtu: Int?                    // Link MTU in bytes
+    let dnsServers: [String]?        // Configured DNS resolver addresses
+    let vpnActive: Bool?             // A VPN interface is active
+    let vpnName: String?             // Best-guess VPN name (Tailscale, WireGuard, system service…)
+    let proxyActive: Bool?           // A system proxy is configured
+    let proxyDescription: String?    // Short summary of the active proxy
 
     // WiFi-specific
     let wifiSSID: String?
@@ -152,13 +161,31 @@ class NetworkInfoService {
             }
         }
 
-        // Get local IP for the active interface
-        let localIP = ipAddresses[interfaceName] ?? ipAddresses.values.first
+        // Get local IPs for the active interface, falling back to any interface
+        let activeIPs = ipAddresses[interfaceName]
+        let localIP = activeIPs?.ipv4 ?? ipAddresses.values.compactMap { $0.ipv4 }.first
+        let localIPv6 = activeIPs?.ipv6 ?? ipAddresses.values.compactMap { $0.ipv6 }.first
+        let subnetMask = activeIPs?.ipv4Netmask
+        let mtu = activeIPs?.mtu ?? ipAddresses.values.compactMap { $0.mtu }.first
+
+        let (gateway, dnsServers) = getGatewayAndDNS()
+
+        let vpn = VPNInterfaceDetector.currentVPN()
+        let proxy = SystemProxyDetector.currentProxy()
 
         return NetworkMetadata(
             connectionType: connectionType,
             interfaceName: interfaceName,
             localIPAddress: localIP,
+            localIPv6Address: localIPv6,
+            subnetMask: subnetMask,
+            gatewayIPAddress: gateway,
+            mtu: mtu,
+            dnsServers: dnsServers,
+            vpnActive: vpn.active,
+            vpnName: vpn.name,
+            proxyActive: proxy.active,
+            proxyDescription: proxy.description,
             wifiSSID: wifiSSID,
             wifiBSSID: wifiBSSID,
             wifiRSSI: wifiRSSI,
@@ -170,9 +197,17 @@ class NetworkInfoService {
         )
     }
 
-    /// Get IP addresses for all interfaces
-    private func getIPAddresses() -> [String: String] {
-        var addresses: [String: String] = [:]
+    /// IPv4 and IPv6 addresses for a single interface
+    private struct InterfaceAddresses {
+        var ipv4: String?
+        var ipv6: String?
+        var ipv4Netmask: String?
+        var mtu: Int?
+    }
+
+    /// Get IPv4 and IPv6 addresses for all interfaces
+    private func getIPAddresses() -> [String: InterfaceAddresses] {
+        var addresses: [String: InterfaceAddresses] = [:]
 
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else {
@@ -187,31 +222,100 @@ class NetworkInfoService {
             let interface = ptr!.pointee
             let family = interface.ifa_addr.pointee.sa_family
 
-            // Only IPv4 for simplicity
-            if family == UInt8(AF_INET) {
+            // AF_LINK entries carry per-interface link data including the MTU.
+            if family == UInt8(AF_LINK) {
                 let name = String(cString: interface.ifa_name)
-                var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                var addr = interface.ifa_addr.pointee
+                if let data = interface.ifa_data {
+                    let linkData = data.assumingMemoryBound(to: if_data.self).pointee
+                    addresses[name, default: InterfaceAddresses()].mtu = Int(linkData.ifi_mtu)
+                }
+                continue
+            }
 
-                getnameinfo(
-                    &addr,
-                    socklen_t(interface.ifa_addr.pointee.sa_len),
-                    &hostname,
-                    socklen_t(hostname.count),
-                    nil,
-                    0,
-                    NI_NUMERICHOST
-                )
+            guard family == UInt8(AF_INET) || family == UInt8(AF_INET6) else { continue }
 
-                let ip = String(cString: hostname)
-                // Skip loopback
-                if !ip.hasPrefix("127.") {
-                    addresses[name] = ip
+            let name = String(cString: interface.ifa_name)
+            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            var addr = interface.ifa_addr.pointee
+
+            getnameinfo(
+                &addr,
+                socklen_t(interface.ifa_addr.pointee.sa_len),
+                &hostname,
+                socklen_t(hostname.count),
+                nil,
+                0,
+                NI_NUMERICHOST
+            )
+
+            var ip = String(cString: hostname)
+
+            if family == UInt8(AF_INET) {
+                // Skip IPv4 loopback
+                guard !ip.hasPrefix("127.") else { continue }
+                addresses[name, default: InterfaceAddresses()].ipv4 = ip
+
+                // Subnet mask comes from the matching ifa_netmask sockaddr
+                if let netmaskPtr = interface.ifa_netmask {
+                    var nmHost = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                    var nmAddr = netmaskPtr.pointee
+                    getnameinfo(
+                        &nmAddr,
+                        socklen_t(netmaskPtr.pointee.sa_len),
+                        &nmHost,
+                        socklen_t(nmHost.count),
+                        nil,
+                        0,
+                        NI_NUMERICHOST
+                    )
+                    addresses[name, default: InterfaceAddresses()].ipv4Netmask = String(cString: nmHost)
+                }
+            } else {
+                // IPv6: getnameinfo appends a "%en0" scope id for link-local; strip it
+                if let percent = ip.firstIndex(of: "%") {
+                    ip = String(ip[..<percent])
+                }
+                // Skip special-use addresses that begin with "::" (unspecified "::",
+                // loopback "::1", IPv4-mapped "::ffff:") and link-local (fe80::/10);
+                // keep only real global/ULA addresses.
+                let lower = ip.lowercased()
+                guard !lower.hasPrefix("::"),
+                      !lower.hasPrefix("fe8"), !lower.hasPrefix("fe9"),
+                      !lower.hasPrefix("fea"), !lower.hasPrefix("feb") else { continue }
+                // Prefer the first non-temporary-looking address we see for the interface
+                if addresses[name, default: InterfaceAddresses()].ipv6 == nil {
+                    addresses[name, default: InterfaceAddresses()].ipv6 = ip
                 }
             }
         }
 
         return addresses
+    }
+
+    /// Read the default gateway and configured DNS resolvers from the system
+    /// configuration dynamic store (no subprocess required).
+    private func getGatewayAndDNS() -> (gateway: String?, dns: [String]?) {
+        guard let store = SCDynamicStoreCreate(nil, "NetworkQuality" as CFString, nil, nil) else {
+            return (nil, nil)
+        }
+
+        var gateway: String?
+        if let ipv4 = SCDynamicStoreCopyValue(store, "State:/Network/Global/IPv4" as CFString) as? [String: Any] {
+            gateway = ipv4["Router"] as? String
+        }
+        // Fall back to the IPv6 default route if there's no IPv4 router
+        if gateway == nil,
+           let ipv6 = SCDynamicStoreCopyValue(store, "State:/Network/Global/IPv6" as CFString) as? [String: Any] {
+            gateway = ipv6["Router"] as? String
+        }
+
+        var dns: [String]?
+        if let dnsDict = SCDynamicStoreCopyValue(store, "State:/Network/Global/DNS" as CFString) as? [String: Any],
+           let servers = dnsDict["ServerAddresses"] as? [String], !servers.isEmpty {
+            dns = servers
+        }
+
+        return (gateway, dns)
     }
 
     private func mapSecurity(_ security: CWSecurity) -> NetworkMetadata.WiFiSecurity {

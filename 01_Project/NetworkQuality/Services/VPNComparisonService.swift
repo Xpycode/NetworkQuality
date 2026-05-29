@@ -274,6 +274,77 @@ struct VPNInterfaceDetector {
         case ipsec = "IPSec"
         case other = "VPN"
     }
+
+    /// Name of the active system VPN service (PPP/VPN/IPSec), if any.
+    static func systemVPNName() -> String? {
+        guard let prefs = SCPreferencesCreate(nil, "NetworkQuality" as CFString, nil),
+              let services = SCNetworkServiceCopyAll(prefs) as? [SCNetworkService] else {
+            return nil
+        }
+
+        for service in services {
+            if let name = SCNetworkServiceGetName(service),
+               let interface = SCNetworkServiceGetInterface(service),
+               let type = SCNetworkInterfaceGetInterfaceType(interface) {
+
+                let typeStr = type as String
+                if typeStr == "PPP" || typeStr == "VPN" || typeStr == "IPSec" {
+                    return name as String
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Passive VPN summary: whether a VPN interface is active and its best-guess name.
+    static func currentVPN() -> (active: Bool, name: String?) {
+        let interfaces = detectVPNInterfaces()
+        guard !interfaces.isEmpty else { return (false, nil) }
+
+        if interfaces.contains(where: { $0.vpnType == .tailscale }) { return (true, "Tailscale") }
+        if interfaces.contains(where: { $0.vpnType == .wireGuard }) { return (true, "WireGuard") }
+        if let systemName = systemVPNName() { return (true, systemName) }
+        return (true, nil)
+    }
+}
+
+// MARK: - System Proxy Detection
+
+/// Reads the active system HTTP/HTTPS/SOCKS/PAC proxy configuration.
+struct SystemProxyDetector {
+    /// Returns whether a proxy is configured and a short human-readable summary.
+    static func currentProxy() -> (active: Bool, description: String?) {
+        guard let settings = CFNetworkCopySystemProxySettings()?.takeRetainedValue() as? [String: Any] else {
+            return (false, nil)
+        }
+
+        var parts: [String] = []
+
+        func host(_ enableKey: CFString, _ hostKey: CFString, _ portKey: CFString, label: String) {
+            guard (settings[enableKey as String] as? Int) == 1 else { return }
+            if let h = settings[hostKey as String] as? String {
+                if let p = settings[portKey as String] as? Int {
+                    parts.append("\(label) \(h):\(p)")
+                } else {
+                    parts.append("\(label) \(h)")
+                }
+            } else {
+                parts.append(label)
+            }
+        }
+
+        host(kCFNetworkProxiesHTTPEnable, kCFNetworkProxiesHTTPProxy, kCFNetworkProxiesHTTPPort, label: "HTTP")
+        host(kCFNetworkProxiesHTTPSEnable, kCFNetworkProxiesHTTPSProxy, kCFNetworkProxiesHTTPSPort, label: "HTTPS")
+        host(kCFNetworkProxiesSOCKSEnable, kCFNetworkProxiesSOCKSProxy, kCFNetworkProxiesSOCKSPort, label: "SOCKS")
+
+        // Proxy auto-config (PAC) file
+        if (settings[kCFNetworkProxiesProxyAutoConfigEnable as String] as? Int) == 1 {
+            parts.append("Auto-config (PAC)")
+        }
+
+        guard !parts.isEmpty else { return (false, nil) }
+        return (true, parts.joined(separator: ", "))
+    }
 }
 
 // MARK: - VPN Comparison Service
@@ -360,25 +431,7 @@ class VPNComparisonService: ObservableObject {
     }
 
     private func getActiveVPNName() -> String? {
-        // Check network preferences for VPN configuration name
-        guard let prefs = SCPreferencesCreate(nil, "NetworkQuality" as CFString, nil),
-              let services = SCNetworkServiceCopyAll(prefs) as? [SCNetworkService] else {
-            return nil
-        }
-
-        for service in services {
-            if let name = SCNetworkServiceGetName(service),
-               let interface = SCNetworkServiceGetInterface(service),
-               let type = SCNetworkInterfaceGetInterfaceType(interface) {
-
-                let typeStr = type as String
-                if typeStr == "PPP" || typeStr == "VPN" || typeStr == "IPSec" {
-                    return name as String
-                }
-            }
-        }
-
-        return nil
+        VPNInterfaceDetector.systemVPNName()
     }
 
     // MARK: - Run Comparison

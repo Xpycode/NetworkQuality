@@ -319,6 +319,49 @@ struct BufferbloatVisualization: View {
         }
     }
 
+    private var grade: BufferbloatGrade {
+        BufferbloatGrade.grade(idleLatencyMs: idleLatencyMs, rpm: rpm)
+    }
+
+    /// Letter grade based on latency added under load, using the widely-used
+    /// Waveform / DSLReports bufferbloat scale (lower added latency = better).
+    enum BufferbloatGrade: String {
+        case aPlus = "A+"
+        case a = "A"
+        case b = "B"
+        case c = "C"
+        case d = "D"
+        case f = "F"
+
+        static func grade(forAddedLatencyMs ms: Double) -> BufferbloatGrade {
+            switch ms {
+            case ..<5:   return .aPlus
+            case ..<30:  return .a
+            case ..<60:  return .b
+            case ..<200: return .c
+            case ..<400: return .d
+            default:     return .f
+            }
+        }
+
+        /// Convenience: grade from idle latency and RPM (loaded latency = 60000 / RPM).
+        static func grade(idleLatencyMs idle: Double, rpm: Int) -> BufferbloatGrade {
+            guard rpm > 0 else { return .aPlus }
+            let loaded = 60000.0 / Double(rpm)
+            return grade(forAddedLatencyMs: max(0, loaded - idle))
+        }
+
+        var color: Color {
+            switch self {
+            case .aPlus, .a: return .green
+            case .b:         return .blue
+            case .c:         return .orange
+            case .d:         return Color(red: 0.9, green: 0.45, blue: 0.0)
+            case .f:         return .red
+            }
+        }
+    }
+
     enum BufferbloatSeverity {
         case minimal, moderate, significant, severe
 
@@ -357,7 +400,7 @@ struct BufferbloatVisualization: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
-            HStack {
+            HStack(spacing: 8) {
                 Image(systemName: "waveform.path.ecg")
                     .foregroundStyle(severity.color)
                 Text("Bufferbloat")
@@ -366,6 +409,13 @@ struct BufferbloatVisualization: View {
                 Text(severity.label)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(severity.color)
+                // Letter grade badge (Waveform-style)
+                Text(grade.rawValue)
+                    .font(.system(.title3, design: .rounded, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .frame(minWidth: 38, minHeight: 38)
+                    .padding(.horizontal, 4)
+                    .background(grade.color, in: RoundedRectangle(cornerRadius: 10))
             }
 
             // Bar chart visualization
