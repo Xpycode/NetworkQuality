@@ -9,7 +9,7 @@
 
 ## Current Position
 - **Phase:** polish
-- **Focus:** v1.1.0 (build 1100) prep. Sparkle auto-updates wired and build-verified (menu item, appcast, EdDSA key in 99-AUTH). CHANGELOG has the v1.1.0 entry. Remaining before release: README feature update, rebuild DMG, notarize, sign appcast entry, fresh screenshots, dark-mode color audit (320 refs).
+- **Focus:** v1.1.0 (build 1100) prep. Sparkle auto-updates wired and build-verified (menu item, appcast, EdDSA key in 99-AUTH). CHANGELOG has the v1.1.0 entry. Release is fully runnable from the M1 Max (Developer ID cert, notary profile `notary-FDMSRXXN73`, Sparkle key all present). Remaining before release: README feature update, rebuild DMG, notarize, sign appcast entry, fresh screenshots, dark-mode color audit (320 refs).
 - **Status:** in progress
 - **Last updated:** 2026-07-12
 

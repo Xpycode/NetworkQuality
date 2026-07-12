@@ -8,3 +8,6 @@
 
 ### May
 - [2026-05-29](2026-05-29.md) — Connection Info diagnostics (IPv6, dual-stack, gateway/DNS/MTU, VPN/proxy), bufferbloat grade, live pre-test panel, export privacy; PRs #1 & #2 merged
+
+### July
+- [2026-07-12](2026-07-12.md) — Git re-bootstrap, version confusion → v1.1.0 (build 1100), ship check (0 blockers), Sparkle auto-updates wired + build-verified, notary profile created; release fully unblocked on M1 Max
