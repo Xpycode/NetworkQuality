@@ -74,5 +74,19 @@ This file tracks the WHY behind technical and design decisions.
 - The stale `APP/NetworkQuality-v1.0.3/NetworkQuality-1.0.3.dmg` must not be notarized/distributed — archive or delete it.
 - Release path: rebuild → notarize → tag `v1.1.0` → fresh screenshots. Dark-mode color audit still pending pre-release.
 
+### 2026-07-12 — Sparkle auto-updates adopted for v1.1.0
+
+**Context:** `/check ship` found no update mechanism — the one bucket-2 gap needing a project decision. Every DMG-distributed user is otherwise stranded on whatever version they downloaded.
+
+**Decision:** Sparkle ≥ 2.8.1 via SPM, following the house pattern (cookbook #16, CropBatch as reference): `UpdateController` in Services/, "Check for Updates..." under About in the app menu, `SUEnableAutomaticChecks` on, appcast served from `https://raw.githubusercontent.com/Xpycode/NetworkQuality/main/appcast.xml`.
+
+**Key handling:** Per-app EdDSA key pair, generated into this Mac's Keychain under account `NetworkQuality`; private key exported to `99-AUTH/networkquality-sparkle-private.key` (Keychain doesn't sync — the file is the cross-Mac source). Public key lives in the partial `Info.plist` (custom `SU*` keys must go there, not in `INFOPLIST_KEY_*` build settings, which silently drop them).
+
+**Consequences:**
+- Release flow gains one step: `sign_update -f <99-AUTH key> <DMG>`, then fill `sparkle:edSignature` + `length` into `appcast.xml` and push (placeholders are in the file, with the process documented in a comment).
+- DMGs must be uploaded as GitHub release assets (`releases/download/v.../NetworkQuality-X.X.X.dmg`) — that's where the appcast enclosure points.
+- v1.1.0 is the *first* Sparkle-enabled release: existing 1.0.x users still need one manual download; auto-update kicks in from 1.1.0 onward.
+- Build numbers must stay monotonic (Sparkle compares `sparkle:version` = build number, not the marketing version).
+
 ---
 *Add decisions as they are made. Future-you will thank present-you.*

@@ -9,7 +9,7 @@
 
 ## Current Position
 - **Phase:** polish
-- **Focus:** Version confusion resolved — next release is **v1.1.0 (build 1100)**; the never-shipped v1.0.3 is retired and its stale DMG must not be distributed. CHANGELOG now has the v1.1.0 entry (Connection Info suite + App Shell). Remaining before release: rebuild DMG, notarize, fresh screenshots, dark-mode color audit (477 refs).
+- **Focus:** v1.1.0 (build 1100) prep. Sparkle auto-updates wired and build-verified (menu item, appcast, EdDSA key in 99-AUTH). CHANGELOG has the v1.1.0 entry. Remaining before release: README feature update, rebuild DMG, notarize, sign appcast entry, fresh screenshots, dark-mode color audit (320 refs).
 - **Status:** in progress
 - **Last updated:** 2026-07-12
 
@@ -49,6 +49,7 @@
 - [ ] Release build of 1.1.0 (build 1100) built, notarized, stapled; DMG opens on a clean system
 - [ ] Core flows crash-free: single test, multi-server test, network tools, LAN test, history, all four exports
 - [ ] README updated with the v1.1.0 features
+- [ ] appcast.xml: DMG signed (`sign_update -f` the 99-AUTH key), signature + length filled in, pushed to main; DMG attached to the GitHub v1.1.0 release
 - [ ] Fresh screenshots in `03_Screenshots/`
 
 ## Blockers

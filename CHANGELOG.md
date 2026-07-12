@@ -11,6 +11,7 @@
 - **VPN & proxy detection** shown alongside the connection details
 - **Live pre-test panel**: Connection Info is populated before any test runs
 - **Bufferbloat letter grade (A+…F)** keyed on absolute added latency under load (Waveform/DSLReports scale), complementing the existing severity label
+- **Automatic updates via Sparkle** — the app now checks for new versions and offers one-click updates (App menu → Check for Updates)
 
 #### Privacy
 - **Identifying network fields never leave the app**: IP addresses, DNS, gateway, SSID/BSSID, and proxy details are excluded at the serialization layer, so they appear in no export format and are not persisted to on-disk history; live in-app display is unaffected

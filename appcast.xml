@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>NetworkQuality Updates</title>
+        <link>https://github.com/Xpycode/NetworkQuality</link>
+        <description>Updates for NetworkQuality</description>
+        <language>en</language>
+
+        <!--
+        RELEASE PROCESS:
+        1. Build for release: Product → Archive in Xcode
+        2. Export notarized app, create DMG
+        3. Sign the DMG:
+           sign_update -f ~/ProgrammingProjects/99-AUTH/networkquality-sparkle-private.key NetworkQuality-X.X.X.dmg
+           (sign_update lives in DerivedData/<any Sparkle app>/SourcePackages/artifacts/sparkle/Sparkle/bin/)
+        4. Fill in sparkle:edSignature and length below from the output
+        5. Upload the DMG to the GitHub release, push appcast.xml to main
+        -->
+
+        <!-- Latest release first -->
+        <item>
+            <title>Version 1.1.0</title>
+            <description><![CDATA[
+                <h2>What's New in 1.1.0</h2>
+                <ul>
+                    <li>Connection Info diagnostics: local + public IPv4/IPv6 with dual-stack badge, gateway, subnet, MTU, DNS servers</li>
+                    <li>VPN &amp; proxy detection</li>
+                    <li>Live pre-test panel — connection details visible before any test runs</li>
+                    <li>Bufferbloat letter grade (A+ to F) based on added latency under load</li>
+                    <li>Privacy: identifying network fields (IPs, DNS, SSID) never leave the app — excluded from all exports and history</li>
+                    <li>Refreshed UI: dark theme, new toolbar, redesigned controls</li>
+                    <li>Automatic updates via Sparkle (this feature!)</li>
+                </ul>
+            ]]></description>
+            <pubDate>Sat, 12 Jul 2026 12:00:00 +0000</pubDate>
+            <enclosure
+                url="https://github.com/Xpycode/NetworkQuality/releases/download/v1.1.0/NetworkQuality-1.1.0.dmg"
+                sparkle:version="1100"
+                sparkle:shortVersionString="1.1.0"
+                length="ENCLOSURE_LENGTH_TODO"
+                sparkle:edSignature="ENCLOSURE_SIGNATURE_TODO"
+                type="application/octet-stream"/>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+        </item>
+    </channel>
+</rss>

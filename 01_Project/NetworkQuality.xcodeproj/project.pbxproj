@@ -40,6 +40,8 @@
 		A11111110000000000000034 /* FCPToolbarButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000034 /* FCPToolbarButtonStyle.swift */; };
 		A11111110000000000000035 /* PaneToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000035 /* PaneToggleButton.swift */; };
 		A11111110000000000000036 /* View+SplitViewAutosave.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000036 /* View+SplitViewAutosave.swift */; };
+		A11111110000000000000037 /* UpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000037 /* UpdateController.swift */; };
+		A11111110000000000000038 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = A18000000000000000000002 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -79,6 +81,7 @@
 		A10000000000000000000034 /* FCPToolbarButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FCPToolbarButtonStyle.swift; sourceTree = "<group>"; };
 		A10000000000000000000035 /* PaneToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneToggleButton.swift; sourceTree = "<group>"; };
 		A10000000000000000000036 /* View+SplitViewAutosave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+SplitViewAutosave.swift"; sourceTree = "<group>"; };
+		A10000000000000000000037 /* UpdateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,6 +89,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A11111110000000000000038 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -139,6 +143,7 @@
 				A10000000000000000000026 /* LANSpeedService.swift */,
 				A10000000000000000000028 /* PDFReportService.swift */,
 				A10000000000000000000029 /* VPNComparisonService.swift */,
+				A10000000000000000000037 /* UpdateController.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -206,6 +211,9 @@
 			dependencies = (
 			);
 			name = NetworkQuality;
+			packageProductDependencies = (
+				A18000000000000000000002 /* Sparkle */,
+			);
 			productName = NetworkQuality;
 			productReference = A10000000000000000000000 /* NetworkQuality.app */;
 			productType = "com.apple.product-type.application";
@@ -234,6 +242,9 @@
 				Base,
 			);
 			mainGroup = A13000000000000000000001;
+			packageReferences = (
+				A18000000000000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			productRefGroup = A13000000000000000000006 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -285,6 +296,7 @@
 				A11111110000000000000027 /* LANSpeedTestView.swift in Sources */,
 				A11111110000000000000028 /* PDFReportService.swift in Sources */,
 				A11111110000000000000029 /* VPNComparisonService.swift in Sources */,
+				A11111110000000000000037 /* UpdateController.swift in Sources */,
 				A11111110000000000000030 /* VPNComparisonView.swift in Sources */,
 				A11111110000000000000031 /* NetworkToolsShareCardView.swift in Sources */,
 				A11111110000000000000033 /* Theme.swift in Sources */,
@@ -503,6 +515,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A18000000000000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A18000000000000000000002 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A18000000000000000000001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A15000000000000000000001 /* Project object */;
 }

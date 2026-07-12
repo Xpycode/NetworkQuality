@@ -4,6 +4,8 @@ import SwiftUI
 struct NetworkQualityApp: App {
     @State private var themeManager = ThemeManager.shared
 
+    private let updateController = UpdateController()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -14,6 +16,13 @@ struct NetworkQualityApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates...") {
+                    updateController.checkForUpdates()
+                }
+                .disabled(!updateController.canCheckForUpdates)
+            }
+
             CommandGroup(replacing: .newItem) { }
 
             CommandMenu("Test") {

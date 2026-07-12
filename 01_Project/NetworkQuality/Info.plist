@@ -4,5 +4,11 @@
 <dict>
 	<key>UIDesignRequiresCompatibility</key>
 	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/Xpycode/NetworkQuality/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>PXo4Iq4QsrRXn+oC/qAJfMI2pEb4zBla00N0s3GYkng=</string>
 </dict>
 </plist>
