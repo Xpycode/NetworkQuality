@@ -53,5 +53,26 @@ This file tracks the WHY behind technical and design decisions.
 - Pattern captured in the cross-project cookbook at `0-DIRECTIONS/docs/cookbook/19-swift6-concurrency.md` §2 so future apps avoid the same trap.
 - Pre-existing concern remains out of scope: `Process.waitUntilExit()` inside `AppleNetworkQualityRunner.getAvailableInterfaces()` blocks a cooperative-pool thread. Acceptable for `ifconfig -l` (<10ms); revisit if it surfaces in hotter paths.
 
+### 2026-07-12 — Next release is v1.1.0; unreleased v1.0.3 retired
+
+**Context:** The project file said 1.0.3 (bumped 2026-04-15 for the App Shell migration) and a 1.0.3 DMG existed in `APP/`, but it was built *before* the 2026-05-29 Connection Info feature suite landed on `main` — so the artifact was stale, the CHANGELOG stopped at 1.0.2, and the new features rode unbumped under a number that was never released. Three-way mismatch between public state (1.0.2), project file (1.0.3), and actual code.
+
+**Options Considered:**
+
+1. **Bump to 1.1.0 (chosen).** One fresh release carrying both unreleased feature sets.
+   - *Pros:* Semver-honest — a new diagnostics suite plus a UI overhaul is minor-version scope, not a patch. No ambiguity with the stale DMG.
+   - *Cons:* Retires a version number that was already stamped into a built (but unshipped) artifact.
+2. **Keep 1.0.3.** Zero renumbering churn.
+   - *Cons:* Understates scope; two different binaries would exist claiming 1.0.3.
+3. **Bump to 1.0.4.** Avoids artifact ambiguity.
+   - *Cons:* Patch number signals "fixes only" — misleading for a feature release.
+
+**Decision:** v1.1.0 (build 1100), following the `1.0.3 → 1030` build-number convention.
+
+**Consequences:**
+- v1.0.3 never ships; its App Shell work is folded into the v1.1.0 CHANGELOG entry (noted there).
+- The stale `APP/NetworkQuality-v1.0.3/NetworkQuality-1.0.3.dmg` must not be notarized/distributed — archive or delete it.
+- Release path: rebuild → notarize → tag `v1.1.0` → fresh screenshots. Dark-mode color audit still pending pre-release.
+
 ---
 *Add decisions as they are made. Future-you will thank present-you.*

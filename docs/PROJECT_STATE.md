@@ -9,13 +9,13 @@
 
 ## Current Position
 - **Phase:** polish
-- **Focus:** Connection Info diagnostics shipped to `main` (PRs #1 & #2 merged): local+public IPv6, dual-stack badge, gateway/subnet/MTU/DNS, VPN/proxy detection, bufferbloat letter grade, live pre-test Connection Info panel, and privacy-scrubbed exports. App Shell history-toolbar icons + light-mode share cards also landed. Still pending from v1.0.3: notarization + fresh screenshots, dark-mode color audit (477 refs).
+- **Focus:** Version confusion resolved — next release is **v1.1.0 (build 1100)**; the never-shipped v1.0.3 is retired and its stale DMG must not be distributed. CHANGELOG now has the v1.1.0 entry (Connection Info suite + App Shell). Remaining before release: rebuild DMG, notarize, fresh screenshots, dark-mode color audit (477 refs).
 - **Status:** in progress
-- **Last updated:** 2026-05-29
+- **Last updated:** 2026-07-12
 
 ## Progress
 ```
-[#################---] 85% - v1.0.3 shell migration + new Connection Info diagnostics merged; dark-mode audit & notarization pending
+[##################--] 90% - all v1.1.0 features merged, version bumped, CHANGELOG written; rebuild, notarization, screenshots & dark-mode audit pending
 ```
 
 | Phase | Status | Notes |
@@ -24,7 +24,7 @@
 | Planning | done | — |
 | Implementation | done | All features shipped |
 | Polish | **active** | Shell migration to Penumbra standard — Phase 4–6 pending |
-| Shipping | paused | v1.0.3 DMG ready for notarization; v1.0.2 is current public release |
+| Shipping | paused | v1.1.0 needs rebuild + notarization; v1.0.2 is current public release; v1.0.3 retired unshipped |
 
 ## Tech Stack
 - Swift 5.0, SwiftUI
@@ -33,6 +33,7 @@
 - Cloudflare/M-Lab APIs for multi-server testing
 
 ## Active Decisions
+- 2026-07-12: Next release is **v1.1.0** (build 1100) — minor bump for the two unreleased feature sets; v1.0.3 retired unshipped, its stale DMG in `APP/` must not be distributed (see [decisions.md](decisions.md)).
 - 2026-05-29: Connection Info diagnostics — capture local IPv4+IPv6 (skip loopback/link-local/`::`), independent public v4/v6 + dual-stack badge, gateway/subnet/MTU/DNS (native getifaddrs + SCDynamicStore, no subprocess), VPN/proxy detection. Gateway/DNS/MTU/VPN persisted in `NetworkMetadata`; public IP + badge are live-only.
 - 2026-05-29: Bufferbloat letter grade (A+…F) keyed on **absolute added latency (ms)** (Waveform/DSLReports scale), not the loaded/idle multiplier. Coexists with the older severity label.
 - 2026-05-29: Export privacy at the **Codable/model level** — `NetworkMetadata` CodingKeys omit IP/DNS/gateway/SSID/BSSID/proxy fields, so they never serialize to JSON export or on-disk history (decode as nil). Trade-off: historical results lose these after relaunch; live/current display unaffected.
@@ -45,7 +46,7 @@
 - Privacy-first: no accounts, no telemetry, data stays local
 
 ## Blockers
-- Awaiting user: notarize `APP/NetworkQuality-v1.0.3/NetworkQuality-1.0.3.dmg`, capture fresh screenshots into `03_Screenshots/`.
+- v1.1.0 DMG not yet built — the old `APP/NetworkQuality-v1.0.3/NetworkQuality-1.0.3.dmg` is stale (predates the May 29 features); rebuild as 1.1.0, then notarize and capture fresh screenshots into `03_Screenshots/`.
 - SourceKit indexer shows stale "Cannot find X in scope" diagnostics — xcodebuild builds clean, cosmetic only. Xcode reindex clears it.
 - This folder is a **Syncthing copy where `.git` doesn't survive sync**; if the local repo vanishes, re-attach with init → add origin → fetch → `reset --mixed origin/main` (see Claude memory `git-repo-recovery`).
 

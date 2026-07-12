@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-07-12
+
+### v1.1.0: Connection Info & App Shell
+
+*(Supersedes the unreleased v1.0.3 — its App Shell work ships here instead.)*
+
+#### New Features
+- **Connection Info diagnostics**: local IPv4 + IPv6 addresses (loopback/link-local filtered out), independent public IPv4/IPv6 lookups with a dual-stack badge, plus gateway, subnet, MTU, and DNS servers — all read natively via `getifaddrs` and `SCDynamicStore`, no subprocesses
+- **VPN & proxy detection** shown alongside the connection details
+- **Live pre-test panel**: Connection Info is populated before any test runs
+- **Bufferbloat letter grade (A+…F)** keyed on absolute added latency under load (Waveform/DSLReports scale), complementing the existing severity label
+
+#### Privacy
+- **Identifying network fields never leave the app**: IP addresses, DNS, gateway, SSID/BSSID, and proxy details are excluded at the serialization layer, so they appear in no export format and are not persisted to on-disk history; live in-app display is unaffected
+
+#### UI
+- **App Shell Standard adopted**: dark theme, hidden title bar, HSplitView with position autosave, FCP-style toolbar buttons
+- Segmented pickers replaced at four sites (fixes white-on-white controls in dark mode)
+- History toolbar icons and light-mode share cards
+
+---
+
 ## 2026-04-14
 
 ### v1.0.2: Launch Performance
