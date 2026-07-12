@@ -45,6 +45,12 @@
 - Export formats: PNG, CSV, JSON, PDF for flexibility
 - Privacy-first: no accounts, no telemetry, data stays local
 
+## Done for v1.1.0 (ship line — everything not listed waits for v1.2 by default)
+- [ ] Release build of 1.1.0 (build 1100) built, notarized, stapled; DMG opens on a clean system
+- [ ] Core flows crash-free: single test, multi-server test, network tools, LAN test, history, all four exports
+- [ ] README updated with the v1.1.0 features
+- [ ] Fresh screenshots in `03_Screenshots/`
+
 ## Blockers
 - v1.1.0 DMG not yet built — the old `APP/NetworkQuality-v1.0.3/NetworkQuality-1.0.3.dmg` is stale (predates the May 29 features); rebuild as 1.1.0, then notarize and capture fresh screenshots into `03_Screenshots/`.
 - SourceKit indexer shows stale "Cannot find X in scope" diagnostics — xcodebuild builds clean, cosmetic only. Xcode reindex clears it.
